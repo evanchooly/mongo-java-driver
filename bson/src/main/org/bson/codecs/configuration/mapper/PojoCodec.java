@@ -33,13 +33,13 @@ import org.bson.codecs.configuration.CodecRegistry;
 import java.lang.reflect.InvocationTargetException;
 
 /**
- * Provides the encoding and decoding logic for a ClassModel
+ * Provides the encoding and decoding logic for a POJO.
  *
  * @param <T> the type to encode/decode
  * @since 3.4
  */
 @SuppressWarnings("unchecked")
-final class ClassModelCodec<T> implements CollectibleCodec<T> {
+final class PojoCodec<T> implements CollectibleCodec<T> {
     private final CodecRegistry registry;
     private final ClassModel classModel;
     private IdGenerator idFactory = new ObjectIdGenerator();
@@ -50,12 +50,12 @@ final class ClassModelCodec<T> implements CollectibleCodec<T> {
      * @param model    the model for this codec
      * @param registry the codec registry for this codec
      */
-    ClassModelCodec(final ClassModel model, final CodecRegistry registry) {
+    PojoCodec(final ClassModel model, final CodecRegistry registry) {
         this.registry = registry;
         this.classModel = model;
     }
 
-    ClassModelCodec(final ClassModelCodec<T> original, final FieldModel fieldModel) {
+    PojoCodec(final PojoCodec<T> original, final FieldModel fieldModel) {
         registry = original.registry;
         idFactory = original.idFactory;
         classModel = new ClassModel(original.classModel, fieldModel);
@@ -76,8 +76,8 @@ final class ClassModelCodec<T> implements CollectibleCodec<T> {
         } else {
             Codec<T> codec = findActualCodec(reader);
             T entity;
-            if (codec instanceof ClassModelCodec) {
-                ClassModelCodec<T> modelCodec = (ClassModelCodec<T>) codec;
+            if (codec instanceof PojoCodec) {
+                PojoCodec<T> modelCodec = (PojoCodec<T>) codec;
                 entity = modelCodec.createInstance();
                 reader.readStartDocument();
                 modelCodec.readFields(entity, reader, decoderContext);
@@ -96,9 +96,9 @@ final class ClassModelCodec<T> implements CollectibleCodec<T> {
             writer.writeNull();
         } else {
             Codec<T> codec = (Codec<T>) findActualCodec(entity.getClass());
-            if (codec instanceof ClassModelCodec) {
+            if (codec instanceof PojoCodec) {
                 writer.writeStartDocument();
-                ClassModelCodec<?> modelCodec = (ClassModelCodec<?>) codec;
+                PojoCodec<?> modelCodec = (PojoCodec<?>) codec;
                 ClassModel classModel = modelCodec.getClassModel();
                 if (classModel.isUseDiscriminator()) {
                     writer.writeString("_t", classModel.getDiscriminator());
@@ -154,7 +154,7 @@ final class ClassModelCodec<T> implements CollectibleCodec<T> {
 
     @Override
     public String toString() {
-        return String.format("ClassModelCodec<%s>", classModel);
+        return String.format("PojoCodec<%s>", classModel);
     }
 
     private T createInstance() {
@@ -187,15 +187,15 @@ final class ClassModelCodec<T> implements CollectibleCodec<T> {
             }
         }
         reader.reset();
-        return (ClassModelCodec<K>) this;
+        return (PojoCodec<K>) this;
     }
 
     private Codec<?> findActualCodec(final Class<?> aClass) {
         return getEncoderClass().equals(aClass) ? this : (Codec<?>) registry.get(aClass);
     }
 
-    ClassModelCodec<T> specialize(final FieldModel fieldModel) {
-        return new ClassModelCodec<T>(this, fieldModel);
+    PojoCodec<T> specialize(final FieldModel fieldModel) {
+        return new PojoCodec<T>(this, fieldModel);
     }
 
     void readFields(final T entity, final BsonReader reader, final DecoderContext decoderContext) {

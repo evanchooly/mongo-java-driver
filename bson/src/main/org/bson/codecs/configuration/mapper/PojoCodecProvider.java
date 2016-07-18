@@ -27,7 +27,7 @@ import java.util.Set;
  *
  * @since 3.4
  */
-public final class ClassModelCodecProvider implements CodecProvider {
+public final class PojoCodecProvider implements CodecProvider {
     private final Set<Class<?>> registered;
 
     /**
@@ -35,7 +35,7 @@ public final class ClassModelCodecProvider implements CodecProvider {
      *
      * @param registered     the classes to use
      */
-    ClassModelCodecProvider(final Set<Class<?>> registered) {
+    PojoCodecProvider(final Set<Class<?>> registered) {
         this.registered = registered;
     }
 
@@ -51,23 +51,23 @@ public final class ClassModelCodecProvider implements CodecProvider {
 
     @Override
     public <T> Codec<T> get(final Class<T> clazz, final CodecRegistry registry) {
-        return registered.contains(clazz) ? new ClassModelCodec<T>(new ClassModel(registry, clazz), registry) : null;
+        return registered.contains(clazz) ? new PojoCodec<T>(new ClassModel(registry, clazz), registry) : null;
     }
 
     /**
-     * A Builder for the ClassModelCodecProvider
+     * A Builder for the PojoCodecProvider
      */
     public static class Builder {
         private final Set<Class<?>> registered = new HashSet<Class<?>>();
 
         /**
-         * Creates the ClassModelCodecProvider with the classes that have been registered.
+         * Creates the PojoCodecProvider with the classes that have been registered.
          *
          * @return the Provider
          * @see #register(Class...)
          */
-        public ClassModelCodecProvider build() {
-            return new ClassModelCodecProvider(registered);
+        public PojoCodecProvider build() {
+            return new PojoCodecProvider(registered);
         }
 
         /**

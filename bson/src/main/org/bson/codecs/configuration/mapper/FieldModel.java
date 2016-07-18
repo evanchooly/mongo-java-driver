@@ -430,8 +430,8 @@ public final class FieldModel {
         } else {
             try {
                 fieldCodec = registry.get(first);
-                if (fieldCodec instanceof ClassModelCodec) {
-                    fieldCodec = ((ClassModelCodec<Object>) fieldCodec).specialize(this);
+                if (fieldCodec instanceof PojoCodec) {
+                    fieldCodec = ((PojoCodec<Object>) fieldCodec).specialize(this);
                 }
             } catch (final CodecConfigurationException e) {
                 throw new CodecConfigurationException(format("Can not find codec for the field '%s' of type '%s'", name,

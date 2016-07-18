@@ -58,7 +58,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-public class ClassModelCodecTest {
+public class PojoCodecTest {
 
     private CodecProvider codecProvider;
 
@@ -151,7 +151,7 @@ public class ClassModelCodecTest {
         complex.setIntChild(new IntChild(42));
         BsonDocument document = new BsonDocument();
 
-        ClassModelCodec<Complex> complexCodec = (ClassModelCodec<Complex>) registry.get(Complex.class);
+        PojoCodec<Complex> complexCodec = (PojoCodec<Complex>) registry.get(Complex.class);
         complexCodec.getClassModel().getField("intChild").setUseDiscriminator(false);
 
         complexCodec.encode(new BsonDocumentWriter(document), complex, EncoderContext.builder().build());
@@ -178,9 +178,9 @@ public class ClassModelCodecTest {
     public void testGenerics() {
         CodecRegistry registry = getCodecRegistry(Complex.class, BaseGenericType.class, IntChild.class, StringChild.class);
 
-        ClassModelCodec<IntChild> intChildCodec = (ClassModelCodec<IntChild>) registry.get(IntChild.class);
-        ClassModelCodec<StringChild> stringChildCodec = (ClassModelCodec<StringChild>) registry.get(StringChild.class);
-        ClassModelCodec<Complex> complexCodec = (ClassModelCodec<Complex>) registry.get(Complex.class);
+        PojoCodec<IntChild> intChildCodec = (PojoCodec<IntChild>) registry.get(IntChild.class);
+        PojoCodec<StringChild> stringChildCodec = (PojoCodec<StringChild>) registry.get(StringChild.class);
+        PojoCodec<Complex> complexCodec = (PojoCodec<Complex>) registry.get(Complex.class);
 
         BsonDocument document = new BsonDocument();
         intChildCodec.encode(new BsonDocumentWriter(document), new IntChild(42), EncoderContext.builder().build());
@@ -227,7 +227,7 @@ public class ClassModelCodecTest {
     public void testIdHandling() {
         CodecRegistry registry = getCodecRegistry(Concrete.class);
 
-        ClassModelCodec<Concrete> concreteCodec = (ClassModelCodec<Concrete>) registry.get(Concrete.class);
+        PojoCodec<Concrete> concreteCodec = (PojoCodec<Concrete>) registry.get(Concrete.class);
 
         Concrete concrete = new Concrete();
         assertFalse(concreteCodec.documentHasId(concrete));
@@ -271,7 +271,7 @@ public class ClassModelCodecTest {
     public void testProvider() {
         CodecRegistry codecRegistry = getCodecRegistry(MappedEntity.class);
 
-        assertTrue(codecRegistry.get(MappedEntity.class) instanceof ClassModelCodec);
+        assertTrue(codecRegistry.get(MappedEntity.class) instanceof PojoCodec);
         try {
             codecRegistry.get(Color.class);
             Assert.fail("The get should throw an exception on an unknown class.");
@@ -303,7 +303,7 @@ public class ClassModelCodecTest {
         containerTypes.setList(new ArrayList<BaseGenericType<?>>());
         containerTypes.setMap(new HashMap<String, BaseGenericType<?>>());
 
-        ClassModelCodec<ContainerTypes> codec = (ClassModelCodec<ContainerTypes>) registry.get(ContainerTypes.class);
+        PojoCodec<ContainerTypes> codec = (PojoCodec<ContainerTypes>) registry.get(ContainerTypes.class);
 
         codec.encode(new BsonDocumentWriter(bsonDocument), containerTypes, EncoderContext.builder().build());
 
@@ -324,9 +324,9 @@ public class ClassModelCodecTest {
         ContainerTypes containerTypes = new ContainerTypes();
         CodecRegistry codecRegistry = getCodecRegistry(Complex.class, IntChild.class, StringChild.class, BaseGenericType.class,
                                                        ContainerTypes.class);
-        ClassModelCodec<ContainerTypes> codec = (ClassModelCodec<ContainerTypes>) codecRegistry.get(ContainerTypes.class);
-        assertEquals("ClassModelCodec<ClassModel<ContainerTypes>>", codec.toString());
-        assertEquals("ClassModelCodec<ClassModel<BaseGenericType>>", codecRegistry.get(BaseGenericType.class).toString());
+        PojoCodec<ContainerTypes> codec = (PojoCodec<ContainerTypes>) codecRegistry.get(ContainerTypes.class);
+        assertEquals("PojoCodec<ClassModel<ContainerTypes>>", codec.toString());
+        assertEquals("PojoCodec<ClassModel<BaseGenericType>>", codecRegistry.get(BaseGenericType.class).toString());
 
         BsonDocument document = new BsonDocument();
         codec.encode(new BsonDocumentWriter(document), containerTypes, EncoderContext.builder().build());
@@ -345,7 +345,7 @@ public class ClassModelCodecTest {
         assertNull(decoded.getMap());
         assertNull(decoded.getList());
 
-        ClassModelCodec<Complex> complexCodec = (ClassModelCodec<Complex>) codecRegistry.get(Complex.class);
+        PojoCodec<Complex> complexCodec = (PojoCodec<Complex>) codecRegistry.get(Complex.class);
         complexCodec.getClassModel().getField("stringChild").setStoreNulls(true);
 
         document = new BsonDocument();
@@ -367,10 +367,10 @@ public class ClassModelCodecTest {
     private CodecRegistry getCodecRegistry(final Class<?> clazz, final Class<?>... classes) {
         List<Class<?>> list = new ArrayList<Class<?>>(asList(classes));
         list.add(clazz);
-        codecProvider = ClassModelCodecProvider.builder()
-                                               .register(clazz)
-                                               .register(classes)
-                                               .build();
+        codecProvider = PojoCodecProvider.builder()
+                                         .register(clazz)
+                                         .register(classes)
+                                         .build();
 
         return CodecRegistries.fromProviders(codecProvider,
                                              new ValueCodecProvider());

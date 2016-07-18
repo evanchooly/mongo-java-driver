@@ -15,6 +15,6 @@
  */
 
 /**
- * This package contains classes specific to the ClassModelCodec
+ * This package contains classes specific to user POJOs.
  */
 package org.bson.codecs.configuration.mapper;

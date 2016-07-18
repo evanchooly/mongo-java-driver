@@ -53,7 +53,7 @@ public class ClassModelTest {
     private final CodecRegistry registry = CodecRegistries.fromProviders(new CodecProvider() {
         @Override
         public <T> Codec<T> get(final Class<T> clazz, final CodecRegistry registry) {
-            return Object.class.equals(clazz) ? null : (Codec<T>) new ClassModelCodec<T>(new ClassModel(registry, clazz), registry);
+            return Object.class.equals(clazz) ? null : (Codec<T>) new PojoCodec<T>(new ClassModel(registry, clazz), registry);
         }
     }, new ValueCodecProvider());
 
