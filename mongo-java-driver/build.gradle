@@ -29,21 +29,19 @@ idea {
 
 // dependencies copied from driver-core
 dependencies {
-    compile "io.netty:netty-buffer:$nettyVersion", optional
-    compile "io.netty:netty-transport:$nettyVersion", optional
-    compile "io.netty:netty-handler:$nettyVersion", optional
+    compile project(":bson")
+    compile project(":driver")
+    compile project(":driver-core")
 }
 
-// srcDirs copied as well, so everything is compiled twice
-sourceSets {
-    main {
-        java {
-            srcDirs = ["$rootDir/driver/src/main", "$rootDir/driver-core/src/main", "$rootDir/bson/src/main"]
-        }
-    }
+task copyClasses(type: Copy) {
+    from([project(":bson").sourceSets.main.output,
+          project(":driver").sourceSets.main.output,
+          project(":driver-core").sourceSets.main.output
+    ])
+    into "build/classes/main"
 }
 
-// copied from driver-core
 jar {
     manifest {
         instruction 'Import-Package',
@@ -59,7 +57,7 @@ jar {
                     'io.netty.*;resolution:=optional',
                     'org.slf4j;resolution:=optional'
     }
-    }
+}.dependsOn copyClasses
 
 modifyPom {
     project {
