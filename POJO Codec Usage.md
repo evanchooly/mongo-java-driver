@@ -7,18 +7,17 @@ PojoCodec
 -----
 The entry point for configuring the driver to work with user defined POJOs is the `PojoCodec`.  When creating a provider, a `Builder` is provided through which classes may be registered.  Classes passed to the `register()` method are mapped according to the default logic as defined by the driver.  The models built by this mapping are immutable and can not be changed once passed on to the driver.  
 
-For these definitions there is `PojoCodecBuilder#buildModel(Class)`.  This method returns a `ModelBuilder` that allows for programmatic addition of fields and mapping data.  These APIs ares discussed below.
-
-The proposed API for `PojoCodecProvider.Builder` is as follows:
+For these definitions there is `PojoCodecBuilder#buildModel(Class)`.  This method returns a `ModelBuilder` that allows for programmatic addition of fields and mapping data.  The API for `PojoCodecProvider.Builder` is as follows:
 
 ```java
     class Builder {
        Builder register(Class<?>...)
+       Builder register(String...)
        ModelBuilder buildModel(Class<?>)
        PojoCodecProvider build()
     }
 ```
-`register()` will accept any number of `Class` references and apply default mapping logic to them.  `buildModel()` allows developers to explicitly configure mapping data.  `build()` is called once class mapping is done and the configurations are ready to be passed in to the `CodecRegistry`.
+`register()` will accept any number of `Class` references and apply default mapping logic to them.  Alternatively, classes can be registered by package.  In this case, every class found in the packages specified will be mapped.  `buildModel()` allows developers to explicitly configure mapping data.  `build()` is called once class mapping is done and the configurations are ready to be passed in to the `CodecRegistry`.
 
 ModelBuilder
 ----
