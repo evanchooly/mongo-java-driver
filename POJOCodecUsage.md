@@ -7,18 +7,19 @@ PojoCodec
 -----
 The entry point for configuring the driver to work with user defined POJOs is the `PojoCodec`.  When creating a provider, a `Builder` is provided through which classes may be registered.  Classes passed to the `register()` method are mapped according to the default logic as defined by the driver.  The models built by this mapping are immutable and can not be changed once passed on to the driver.  
 
-For these definitions there is `PojoCodecBuilder#buildModel(Class)`.  This method returns a `ClassModelBuilder` that allows for programmatic addition of fields and mapping data.  The API for `PojoCodecProvider.Builder` is as follows:
+For these definitions there is `PojoCodecBuilder#buildModel(Class)`.  This method returns a `ClassModelBuilder` that allows for programmatic addition of fields and mapping data.  The API for `PojoCodecProvider.PojoCodecProviderBuilder` is as follows:
 
 ```java
-    class Builder {
-       Builder register(Class<?>...)
-       Builder registerPackage(String...)
-       Builder registerPackage(Class<?>)
-       ClassModelBuilder buildModel(Class<?>)
-       PojoCodecProvider build()
-    }
+    class PojoCodecProviderBuilder {
+		PojoCodecProvider build()
+		ClassModel.ClassModelBuilder buildClassModel(Class<?> type)
+		PojoCodecProvider.PojoCodecProviderBuilder 	register(Class<?>... classes)
+		PojoCodecProvider.PojoCodecProviderBuilder 	registerPackages(Class... classes) 
+		PojoCodecProvider.PojoCodecProviderBuilder 	registerPackages(String... packages) 
+		PojoCodecProvider.PojoCodecProviderBuilder 	setConventionPack(ConventionPack conventionPack)
+}
 ```
-`register()` will accept any number of `Class` references and apply default mapping logic to them.  Alternatively, classes can be registered by package.  In this case, every class found in the packages specified will be mapped.  `buildModel()` allows developers to explicitly configure mapping data.  `build()` is called once class mapping is done and the configurations are ready to be passed in to the `CodecRegistry`.
+`register()` will accept any number of `Class` references and apply default mapping logic to them.  Classes can also be registered by package.  `registerPackages(String...)` takes the names of the packages to map.  Alternately, `registerPackages(Class...)` will use the package of the given class to discover other packages to map.  In either case, every class found in the packages specified will be mapped.  `buildClassModel(Class<?>)` allows developers to explicitly configure mapping data for a class.  `build()` is called once class mapping is done and the configurations are ready to be passed in to the `CodecRegistry`.
 
 ClassModelBuilder
 ----
@@ -26,16 +27,17 @@ The `ClassModelBuilder` provides the API defining the mapping logic for the unde
 
 ```java
 class ClassModelBuilder {
-    ClassModelBuilder(Class<?>)
-    ClassModelBuilder collection(String)
-    ClassModelBuilder id(String)
-    ClassModelBuilder discriminatorName(String)    
-    ClassModelBuilder discriminatorValue(String)    
-    ClassModelBuilder useDiscriminator(Boolean)
-    FieldModelBuilder add(FieldModelBuilder)
-    
-    ClassModelBuilder subclass(final Class<?> type)
-    ClassModel build()
+	FieldModelBuilder addField(String name) 
+	ClassModelBuilder collection(String value) 
+	ClassModelBuilder discriminator(String value) 
+	List<Annotation> getAnnotations() 
+	List<FieldModelBuilder> getFields() 
+	Class<?> getType() 
+	String getTypeName() 
+	ClassModelBuilder subclass(Class<?> type) 
+	ClassModelBuilder useDiscriminator(Boolean value) 
+
+	ClassModel build() 
 }
 ```
 
@@ -53,19 +55,20 @@ FieldModelBuilder
 
 ```java
 class FieldModelBuilder {
-    FieldModelBuilder documentFieldName(String)
-    FieldModelBuilder type(Class<?>, Class<?>...)
-    FieldModelBuilder storeNullFields(boolean)
-    FieldModelBuilder storeEmptyFields(boolean)
-    FieldModelBuilder useDiscriminator(boolean)
-    FieldModelBuilder included(boolean)
-    FieldModelBuilder idField()
-    
-    FieldModel build()
+	FieldModelBuilder documentFieldName(String name)
+	FieldModelBuilder idField(boolean idField) 
+	FieldModelBuilder include(boolean include) 
+	FieldModelBuilder storeEmptyFields(boolean storeEmptyFields) 
+	FieldModelBuilder storeNullFields(boolean storeNullFields) 
+	FieldModelBuilder type(Class type) 
+	FieldModelBuilder type(Class type, List<Class> parameters) 
+	FieldModelBuilder typeName(String name) 
+	FieldModelBuilder useDiscriminator(boolean useDiscriminator)     
+	FieldModel        build()
 }
 ```
 
-1.  `documentName()` sets the name to be used in MongoDB when serializing a field to the database.  This defaults to the Java field name.
+2. `documentName()` sets the name to be used in MongoDB when serializing a field to the database.  This defaults to the Java field name.
 2. `type()` sets the type of the field.  Generally, this will be a single class reference such as `String.class`.  If the type can be parameterized, however, mutiple classes can be given to represent the parameterized types.  e.g.. if the field is a `List<String>`, this method would then called like this:  `builder.type(List.class, String.class)`.
 3. `storeNulls()` instructs the mapper how to handle null values.  When `true`, if a field is null in a Java object that null will be stored in the document in MongoDB as well.  If `false`, that value will not be stored and the mapped key name will not be present in the document at all.
 4. `storeEmpties()` applies similar logic to "container types."  If field is a `Collection` or a `Map`, it's value might be non-null but it might also be empty.  That is, it's `size()` returns 0.  In these cases, it is often desirable to not store that field at all and thus save some space on disk.  In this case, `builder.storeEmpties(false)` would prevent the mapper from storing those empty values.  This setting has no effect on fields that are not a `Collection` or a `Map`.  **The default behavior is to not store null and empty values.**
@@ -131,11 +134,26 @@ This builder applies certain defaults to class mapping:
 
 1.  Classes are mapped collections using the lower case form of the simple class name.  For example, if the class `com.acme.foo.UserProfile` were being mapped, it would be mapped to the collection `userprofile`.  This can be changed using a number of predefined `CollectionNamingConvention ` types found in the `org.bson.codecs.pojo.conventions.naming` package.
 2. Fields are mapped, by default, such that the names of the keys in documents in the database match the field names as defined in the Java source code.  Again, there are multiple implementions of `PropertyNamingConvention` if this default naming is not desired.  Users can use the provided implementations or implement more sophisticated variants as needed.
-2. By default, `final` and `storeFinalFields ` fields are ignored.  This can be overridden by passing `true` to either method the `storeFinalFields ` or `storeTransientFields` methods.
+2. By default, `final` and `transient` fields are ignored.  This can be overridden by passing `true` to either method the `storeFinalFields ` or `storeTransientFields` methods.
 3. Similarly, null values and empty `Map` or `Collection` instances are not saved to the database by default.  If these values *should* be persisted, `true` can be passed to either method.
 4. By default, all models configured by the `ConventionPack` created by this builder are configured via an `AnnotationConvention` which, potentially, will overwrite any settings manually configured on a particular class or field.  Should this global configuration not be desired it can be disabled by passing `null` to `annotationConvention()`.  A reference to a custom implemention can also be passed to provide a more customized processing of annotations.
 
-This is, of course, just one way to configure a `ConventionPack`.  Users are free to implement the `ConventionPack` however they wish to achieve goals their designs require.
+This is, of course, just one way to configure a `ConventionPack`.  Users are free to create custom implementations of `ConventionPack`s to achieve whatever configurations are desired.  A `ConventionPack` is a simple collection of `Convention` instances that get applied when the `PojoCodecProviderBuilder.build()` method is invoked.  A `ConventionPack` looks like this:
+
+```java
+class ConventionPack {
+ 	addConvention(Convention convention)
+ 	apply(ClassModelBuilder model)
+} 	
+```
+
+`Convention` instances added to the pack and then will be applied in order via the `apply()` method.  Similarly, the `Convention` is API is a simple interface:
+
+```java
+interface Convention {
+ 	apply(ClassModelBuilder model)
+} 	
+```
 
 Annotations
 ===
