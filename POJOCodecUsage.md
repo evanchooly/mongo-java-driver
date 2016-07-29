@@ -49,7 +49,7 @@ class ClassModelBuilder {
 2. The `id` value specifies which field on the entity is the ID field.  
 3. For polymorphic queries and collections, discriminators are used to distinguish one type from another.  The `discriminatorName()` setting determines what field in the document stored in MongoDB stores this information.  
 4. `discriminatorValue()` determines what value is used to denote the type of the entity.  For example, this discriminator might be stored in a field called `_t` and hold the fully qualified class name of the entity, e.g., `com.acme.Widget`.
-5. `build()` is used the `PojoCodec` builders to create the underlying model used by the codec.  It should never be necessary to call this method manually.
+5. `build()` is generally only called by the `PojoCodecProvdierBuilder`.  It should never be necessary to call this method manually.
 
 When building type hierarchies, building each `ClassModel` individually would result in much duplication.  To avoid this, there is the `subclass()` method.  The method returns a new `ClassModelBuilder` instance representing the subclass.  For these instances, values such as the ID and discriminator fields will be "inherited" by the new `ClassModelBuilder` so these settings need not be duplicated.  The collection name will also be inherited resulting in a single collection for the entire hierarchy. All of these settings can be overriden but care should be taken when changing the `discriminatorName()` value.  Changing this value or `collection()` on subtypes will interfere with polymorphic queries.
 
@@ -115,43 +115,30 @@ In both of these last two cases, `getCollection()` returns an instance of a `Mon
 
 Conventions
 ======
-Conventions provide a more automated approach to configuring class mapping.  Rather than explicitly making every decision about how to map classes, conventions define a set of broad guidelines that are applied across the range of mapped classes.  Conventions are bundled in to a `ConventionPack` and passed to the provider builder via `PojoCodecProviderBuilder.setConventionPack()`.   
+Conventions provide a more automated approach to configuring class mapping.  Rather than explicitly making every decision about how to map classes, conventions define a set of broad guidelines that are applied across the range of mapped classes.  Conventions are optionally passed to the `PojoCodecProviderBuilder` when it is first created and applied to every class registered with the builder.  If no list is passed, a default list of Conventions are used.  Users can also provide a `ConventionOptions` instance to configure this set of default Conventions.  If no options are passed, default options are applied.  To sum up, users can pass in:
 
-While these conventions can be almost anything, there is a default set of conventions provided by the driver.  These conventions are configurable via the `ConventionPackBuilder` class.  This class looks like this:
+1. Nothing
+2. A `ConventionOptions` instance
+3. a `List<Conventions>`
+
+Each option gives increasing customization of mapping behavior.
+
+While these conventions can be almost anything, there is a default set of conventions provided by the driver.  These conventions are configurable via the `ConventionOption` class.  This class looks like this:
 
 ```java
-class ConventionPackBuilder {
-    ConventionPackBuilder collectionNaming(CollectionNamingConvention)
-    ConventionPackBuilder propertyNaming(PropertyNamingConvention)
-    ConventionPackBuilder storeEmptyFields(boolean)
-    ConventionPackBuilder storeFinalFields(boolean)
-    ConventionPackBuilder storeNullFields(boolean)
-    ConventionPackBuilder storeTransientFields(boolean)
-
-    ConventionPackBuilder annotationConvention(AnnotationConvention)
-    ConventionPackBuilder addConvention(Convention)
-    ConventionPack build()
+class ConventionOptions {
+ConventionOptions collectionNamingStrategy(CollectionNaming strategy) 
+ConventionOptions collectionNamingStrategy(CollectionNaming strategy, Class<? extends CollectionNamingConvention> impl) 
+ConventionOptions	propertyNamingStrategy(PropertyNaming strategy) 
+ConventionOptions	propertyNamingStrategy(PropertyNaming strategy, Class<? extends PropertyNamingConvention> impl) 
+ConventionOptions	storeEmptyFields(boolean store) 
+ConventionOptions	storeNullFields(boolean store) 
 }
 ```
 
-This builder applies certain defaults to class mapping:
+`collectionNamingStrategy()` and `propertyNamingStrategy()` are overridden to allow for setting custom implementations when the enum passed in `CUSTOM` for the given strategy type.
 
-1.  Classes are mapped collections using the lower case form of the simple class name.  For example, if the class `com.acme.foo.UserProfile` were being mapped, it would be mapped to the collection `userprofile`.  This can be changed using a number of predefined `CollectionNamingConvention ` types found in the `org.bson.codecs.pojo.conventions.naming` package.
-2. Fields are mapped, by default, such that the names of the keys in documents in the database match the field names as defined in the Java source code.  Again, there are multiple implementions of `PropertyNamingConvention` if this default naming is not desired.  Users can use the provided implementations or implement more sophisticated variants as needed.
-2. By default, `final` and `transient` fields are ignored.  This can be overridden by passing `true` to either method the `storeFinalFields ` or `storeTransientFields` methods.
-3. Similarly, null values and empty `Map` or `Collection` instances are not saved to the database by default.  If these values *should* be persisted, `true` can be passed to either method.
-4. By default, all models configured by the `ConventionPack` created by this builder are configured via an `AnnotationConvention` which, potentially, will overwrite any settings manually configured on a particular class or field.  Should this global configuration not be desired it can be disabled by passing `null` to `annotationConvention()`.  A reference to a custom implemention can also be passed to provide a more customized processing of annotations.
-
-This is, of course, just one way to configure a `ConventionPack`.  Users are free to create custom implementations of `ConventionPack`s to achieve whatever configurations are desired.  A `ConventionPack` is a simple collection of `Convention` instances that get applied when the `PojoCodecProviderBuilder.build()` method is invoked.  A `ConventionPack` looks like this:
-
-```java
-class ConventionPack {
- 	addConvention(Convention convention)
- 	apply(ClassModelBuilder model)
-} 	
-```
-
-`Convention` instances added to the pack and then will be applied in order via the `apply()` method.  Similarly, the `Convention` is API is a simple interface:
+`Convention` instances will be applied in order via the `apply()` method.  The `Convention` is API is a simple interface:
 
 ```java
 interface Convention {
