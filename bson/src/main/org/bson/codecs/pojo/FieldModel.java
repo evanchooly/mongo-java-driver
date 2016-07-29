@@ -16,8 +16,6 @@
 package org.bson.codecs.pojo;
 
 import com.fasterxml.classmate.ResolvedType;
-import com.fasterxml.classmate.TypeBindings;
-import com.fasterxml.classmate.members.ResolvedField;
 import org.bson.BsonReader;
 import org.bson.BsonWriter;
 import org.bson.codecs.Codec;
@@ -25,19 +23,20 @@ import org.bson.codecs.DecoderContext;
 import org.bson.codecs.EncoderContext;
 import org.bson.codecs.configuration.CodecConfigurationException;
 import org.bson.codecs.configuration.CodecRegistry;
+import org.bson.codecs.pojo.ClassModel.ClassModelBuilder;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static java.lang.String.format;
+import static java.util.Arrays.asList;
 
 /**
  * Represents a field on a class and stores various metadata such as generic parameters
@@ -53,16 +52,14 @@ public final class FieldModel {
     private final Map<String, ResolvedType> boundTypes = new HashMap<String, ResolvedType>();
     private final String typeName;
     private final List<Class> types;
-
+    private final List<Annotation> annotations;
     private String name;
     private ShouldSerialize shouldSerialize = new DefaultShouldSerialize();
     private Codec<Object> codec;
     private boolean storeNulls;
     private boolean storeEmpties;
     private Boolean useDiscriminator;
-    private boolean included = true;
     private boolean idField;
-    private List<Annotation> annotations;
 
     /**
      * Create the FieldModel
@@ -71,6 +68,7 @@ public final class FieldModel {
      * @param registry   the codec registry for this codec
      * @param field      the field to model
      */
+/*
     FieldModel(final ClassModel classModel, final CodecRegistry registry, final ResolvedField field) {
         this.type = field.getType().getErasedType();
         this.registry = registry;
@@ -86,9 +84,8 @@ public final class FieldModel {
         typeName = getType().equals(Object.class) ? rawField.getGenericType().toString() : null;
         types = FieldModel.extract(field.getType());
         annotations = field.getAnnotations().asList();
-
-        setIncluded(!(field.isFinal() || field.isStatic() || field.isTransient()));
     }
+*/
 
     /**
      * Copy constructor that changes the field type
@@ -111,7 +108,6 @@ public final class FieldModel {
         useDiscriminator = original.useDiscriminator;
         idField = original.idField;
         annotations = original.annotations;
-        included = original.included;
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -142,13 +138,11 @@ public final class FieldModel {
      * @param encoderContext the encoding context
      */
     public void encode(final BsonWriter writer, final Object entity, final EncoderContext encoderContext) {
-        if (isIncluded()) {
-            Object value = get(entity);
-            Codec<Object> fieldCodec = getCodec();
-            if (shouldSerialize.evaluate(this, value)) {
-                writer.writeName(getName());
-                fieldCodec.encode(writer, value, encoderContext);
-            }
+        Object value = get(entity);
+        Codec<Object> fieldCodec = getCodec();
+        if (shouldSerialize.evaluate(this, value)) {
+            writer.writeName(getName());
+            fieldCodec.encode(writer, value, encoderContext);
         }
     }
 
@@ -248,13 +242,6 @@ public final class FieldModel {
     }
 
     /**
-     * @return true if the field should included
-     */
-    public boolean isIncluded() {
-        return included;
-    }
-
-    /**
      * Returns whether to store empty container field values (List/Map/Set) or not.
      *
      * @return true if empty field values should be serialized to MongoDB
@@ -311,15 +298,6 @@ public final class FieldModel {
         } catch (final IllegalAccessException e) {
             throw new IllegalStateException(e.getMessage(), e);
         }
-    }
-
-    /**
-     * Sets whether this MappedType is to be included when de/encoding BSON documents.
-     *
-     * @param include Whether to include this field in processing or not
-     */
-    public void setIncluded(final boolean include) {
-        this.included = include;
     }
 
     /**
@@ -380,43 +358,6 @@ public final class FieldModel {
         return codec;
     }
 
-    static List<Class> extract(final ResolvedType type) {
-        List<Class> classes = new ArrayList<Class>();
-        Class erasedType = type.getErasedType();
-        if (Collection.class.isAssignableFrom(erasedType)) {
-            ResolvedType collectionType = type.getTypeParameters().get(0);
-            Class<? extends Object> containerClass;
-            if (Set.class.equals(erasedType)) {
-                containerClass = HashSet.class;
-            } else if (List.class.equals(erasedType) || Collection.class.equals(erasedType)) {
-                containerClass = ArrayList.class;
-            } else {
-                containerClass = erasedType;
-            }
-            classes.add(containerClass);
-            classes.addAll(FieldModel.extract(collectionType));
-        } else if (Map.class.isAssignableFrom(erasedType)) {
-            List<ResolvedType> types = type.getTypeParameters();
-            ResolvedType keyType = types.get(0);
-            ResolvedType valueType = types.get(1);
-            if (!keyType.getErasedType().equals(String.class)) {
-                throw new CodecConfigurationException(format("Map key types must be Strings.  Found %s instead.", keyType.getErasedType()));
-            }
-            Class<?> containerClass;
-            if (Map.class.equals(erasedType)) {
-                containerClass = HashMap.class;
-            } else {
-                containerClass = erasedType;
-            }
-            classes.add(containerClass);
-            classes.addAll(FieldModel.extract(valueType));
-        } else {
-            classes.add(type.getErasedType());
-        }
-
-        return classes;
-    }
-
     Codec<Object> wrap(final List<Class> types) {
         Codec<Object> fieldCodec = null;
         Class first = types.get(0);
@@ -440,5 +381,132 @@ public final class FieldModel {
         }
 
         return fieldCodec;
+    }
+
+    @SuppressWarnings({"rawtypes", "CheckStyle"})
+    public static class FieldModelBuilder {
+        private final ClassModelBuilder parent;
+        private final String fieldName;
+        private final Map<String, Class> boundTypes = new HashMap<String, Class>();
+        private final List<Annotation> annotations;
+
+        private final Field javaField;
+        private String documentFieldName;
+        private Class type;
+        private ArrayList<Class> parameters;
+        private boolean included = true;
+        private boolean useDiscriminator = true;
+        private boolean storeEmptyFields = true;
+        private boolean storeNullFields = true;
+        private String typeName;
+        private boolean idField;
+
+        FieldModelBuilder(final ClassModelBuilder parent, final Class<?> parentType, final String fieldName) {
+            this.parent = parent;
+            this.fieldName = fieldName;
+            documentFieldName = fieldName;
+            try {
+                javaField = parentType.getDeclaredField(fieldName);
+                type = javaField.getType();
+                annotations = asList(javaField.getAnnotations());
+            } catch (NoSuchFieldException e) {
+                throw new MappingException(e);
+            }
+        }
+
+        public FieldModelBuilder bindType(final String name, final Class<?> type) {
+            boundTypes.put(name, type);
+            return this;
+        }
+
+        /**
+         * Sets the name of the field in the document stored in the database.
+         *
+         * @param name the name to use in the document
+         *
+         * @return this
+         */
+        public FieldModelBuilder documentFieldName(final String name) {
+            this.documentFieldName = name;
+            return this;
+        }
+
+        public FieldModelBuilder idField(final boolean idField) {
+            this.idField = idField;
+            return this;
+        }
+
+        public FieldModelBuilder storeEmptyFields(final boolean storeEmptyFields) {
+            this.storeEmptyFields = storeEmptyFields;
+            return this;
+        }
+
+        public FieldModelBuilder storeNullFields(final boolean storeNullFields) {
+            this.storeNullFields = storeNullFields;
+            return this;
+        }
+
+        public FieldModelBuilder type(final Class type) {
+            this.type = type;
+            return this;
+        }
+
+        public FieldModelBuilder type(final Class type, final List<Class> parameters) {
+            this.type = type;
+            this.parameters = new ArrayList<Class>(parameters);
+            return this;
+        }
+
+        public FieldModelBuilder include(final boolean include) {
+            this.included = include;
+            return this;
+        }
+
+        public FieldModelBuilder useDiscriminator(final boolean useDiscriminator) {
+            this.useDiscriminator = useDiscriminator;
+            return this;
+        }
+
+        public FieldModelBuilder typeName(final String name) {
+            typeName = name;
+            return this;
+        }
+
+        /**
+         * @return true if this field is marked as final
+         */
+        public boolean isFinal() {
+            return Modifier.isFinal(javaField.getModifiers());
+        }
+
+        /**
+         * @return true if this field is marked as transient
+         */
+        public boolean isTransient() {
+            return Modifier.isTransient(javaField.getModifiers());
+        }
+
+        /**
+         * @return true if this field is marked as static
+         */
+        public boolean isStatic() {
+            return Modifier.isStatic(javaField.getModifiers());
+        }
+
+        public String getFieldName() {
+            return fieldName;
+        }
+
+        public ClassModelBuilder getParent() {
+            return parent;
+        }
+
+        public List<Annotation> annotations() {
+            return annotations;
+        }
+
+        public FieldModel build() {
+            throw new UnsupportedOperationException();
+        }
     }
 }

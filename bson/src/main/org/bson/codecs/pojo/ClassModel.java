@@ -15,13 +15,7 @@
  */
 package org.bson.codecs.pojo;
 
-import com.fasterxml.classmate.AnnotationConfiguration.StdConfiguration;
-import com.fasterxml.classmate.AnnotationInclusion;
-import com.fasterxml.classmate.MemberResolver;
 import com.fasterxml.classmate.ResolvedType;
-import com.fasterxml.classmate.ResolvedTypeWithMembers;
-import com.fasterxml.classmate.TypeResolver;
-import com.fasterxml.classmate.members.ResolvedField;
 import org.bson.codecs.configuration.CodecConfigurationException;
 import org.bson.codecs.configuration.CodecRegistry;
 
@@ -34,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 import static java.lang.String.format;
+import static java.util.Arrays.asList;
 
 /**
  * This class represents the various generics and field metadata of a class for use in mapping data to and from the database.
@@ -43,7 +38,7 @@ import static java.lang.String.format;
 public final class ClassModel {
     private final Map<String, FieldModel> fieldMap = new HashMap<String, FieldModel>();
     private final List<FieldModel> fields = new ArrayList<FieldModel>();
-    private final Class<?> type;
+    private  Class<?> type;
     private boolean generic;
     private FieldModel idField;
     private String collectionName;
@@ -58,6 +53,7 @@ public final class ClassModel {
      * @param aClass   the Class to model
      */
     ClassModel(final CodecRegistry registry, final Class<?> aClass) {
+/*
         TypeResolver resolver = new TypeResolver();
         this.type = aClass;
 
@@ -73,6 +69,7 @@ public final class ClassModel {
         for (final ResolvedField field : type.getMemberFields()) {
             addField(new FieldModel(this, registry, field));
         }
+*/
     }
 
     /**
@@ -284,5 +281,73 @@ public final class ClassModel {
     @Override
     public String toString() {
         return format("ClassModel<%s>", getName());
+    }
+
+    @SuppressWarnings("CheckStyle")
+    public static class ClassModelBuilder {
+        private ClassModelBuilder parent;
+        private final Class<?> type;
+        private final List<FieldModel.FieldModelBuilder> fields = new ArrayList<FieldModel.FieldModelBuilder>();
+        private String collection;
+        private Boolean useDiscriminator = true;
+        private String discriminator;
+        private List<Annotation> annotations;
+
+        public static ClassModelBuilder builder(final Class<?> type) {
+            return new ClassModelBuilder(type);
+        }
+
+        ClassModelBuilder(final ClassModelBuilder parent, final Class<?> type) {
+            this(type);
+            this.parent = parent;
+        }
+
+        ClassModelBuilder(final Class<?> type) {
+            this.type = type;
+            collection = type.getSimpleName();
+            annotations = asList(type.getAnnotations());
+        }
+
+        public String getTypeName() {
+            return type.getSimpleName();
+        }
+
+        public FieldModel.FieldModelBuilder addField(final String name) {
+            FieldModel.FieldModelBuilder field = new FieldModel.FieldModelBuilder(this, type, name);
+            fields.add(field);
+            return field;
+        }
+
+        public List<Annotation> getAnnotations() {
+            return annotations;
+        }
+
+        public List<FieldModel.FieldModelBuilder> getFields() {
+            return fields;
+        }
+
+        public Class<?> getType() {
+            return type;
+        }
+
+        public ClassModelBuilder collection(final String value) {
+            this.collection = value;
+            return this;
+        }
+
+        public ClassModelBuilder discriminator(final String value) {
+            return this;
+        }
+        public ClassModelBuilder useDiscriminator(final Boolean value) {
+            return this;
+        }
+
+        public ClassModelBuilder subclass(final Class<?> type) {
+            return new ClassModelBuilder(this, type);
+        }
+
+        public ClassModel build() {
+            throw new UnsupportedOperationException();
+        }
     }
 }
