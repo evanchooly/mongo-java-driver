@@ -27,8 +27,6 @@ import org.bson.codecs.Codec;
 import org.bson.codecs.configuration.CodecConfigurationException;
 import org.bson.codecs.configuration.CodecProvider;
 import org.bson.codecs.configuration.CodecRegistry;
-import org.bson.codecs.pojo.ClassModel.ClassModelBuilder;
-import org.bson.codecs.pojo.FieldModel.FieldModelBuilder;
 import org.bson.codecs.pojo.conventions.Convention;
 import org.bson.codecs.pojo.conventions.DefaultAnnotationConvention;
 import org.bson.codecs.pojo.conventions.FieldSelectionConvention;
@@ -71,9 +69,9 @@ public final class PojoCodecProvider implements CodecProvider {
      * and Conventions.
      *
      * @return the Builder
-     * @see PojoCodecProviderBuilder#register(Class[])
+     * @see Builder#register(Class[])
      */
-    public static PojoCodecProviderBuilder builder() {
+    public static Builder builder() {
         return builder(new ConventionOptions());
     }
 
@@ -83,9 +81,9 @@ public final class PojoCodecProvider implements CodecProvider {
      *
      * @param options the options to apply to class mapping
      * @return the Builder
-     * @see PojoCodecProviderBuilder#register(Class[])
+     * @see Builder#register(Class[])
      */
-    public static PojoCodecProviderBuilder builder(final ConventionOptions options) {
+    public static Builder builder(final ConventionOptions options) {
         List<Convention> conventions = new ArrayList<Convention>();
         conventions.add(new FieldSelectionConvention());
         FieldStorageConvention convention = new FieldStorageConvention();
@@ -96,7 +94,7 @@ public final class PojoCodecProvider implements CodecProvider {
         conventions.add(options.getPropertyNamingConvention());
         conventions.add(new DefaultAnnotationConvention());
 
-        return new PojoCodecProviderBuilder(conventions);
+        return new Builder(conventions);
     }
 
     /**
@@ -105,10 +103,10 @@ public final class PojoCodecProvider implements CodecProvider {
      *
      * @param conventions the Conventions to apply to class mapping
      * @return the Builder
-     * @see PojoCodecProviderBuilder#register(Class[])
+     * @see Builder#register(Class[])
      */
-    public static PojoCodecProviderBuilder builder(final List<Convention> conventions) {
-        return new PojoCodecProviderBuilder(conventions);
+    public static Builder builder(final List<Convention> conventions) {
+        return new Builder(conventions);
     }
 
     @Override
@@ -119,12 +117,12 @@ public final class PojoCodecProvider implements CodecProvider {
     /**
      * A Builder for the PojoCodecProvider
      */
-    public static class PojoCodecProviderBuilder {
+    public static class Builder {
         private final Set<Class<?>> registered = new HashSet<Class<?>>();
-        private final List<ClassModelBuilder> pojoBuilders = new ArrayList<ClassModelBuilder>();
+        private final List<ClassModel.Builder> pojoBuilders = new ArrayList<ClassModel.Builder>();
         private final List<Convention> conventions;
 
-        private PojoCodecProviderBuilder(final List<Convention> conventions) {
+        private Builder(final List<Convention> conventions) {
             this.conventions = conventions;
         }
 
@@ -177,7 +175,7 @@ public final class PojoCodecProvider implements CodecProvider {
                 pojoBuilders.add(map(type));
             }
             List<ClassModel> models = new ArrayList<ClassModel>();
-            for (ClassModelBuilder builder : pojoBuilders) {
+            for (ClassModel.Builder builder : pojoBuilders) {
                 for (Convention convention : conventions) {
                     convention.apply(builder);
                 }
@@ -194,10 +192,10 @@ public final class PojoCodecProvider implements CodecProvider {
          * @param type the type to add
          * @return this
          */
-        public ClassModelBuilder buildClassModel(final Class<?> type) {
-            ClassModelBuilder classModelBuilder = ClassModelBuilder.builder(type);
-            pojoBuilders.add(classModelBuilder);
-            return classModelBuilder;
+        public ClassModel.Builder buildClassModel(final Class<?> type) {
+            ClassModel.Builder builder = ClassModel.Builder.builder(type);
+            pojoBuilders.add(builder);
+            return builder;
         }
 
         /**
@@ -207,23 +205,23 @@ public final class PojoCodecProvider implements CodecProvider {
          * @param classes the classes to register
          * @return this
          */
-        public PojoCodecProviderBuilder register(final Class<?>... classes) {
+        public Builder register(final Class<?>... classes) {
             for (Class<?> aClass : classes) {
                 registered.add(aClass);
             }
             return this;
         }
 
-        public PojoCodecProviderBuilder registerPackages(final String... packages) {
+        public Builder registerPackages(final String... packages) {
             return this;
         }
 
-        public PojoCodecProviderBuilder registerPackages(final Class... classes) {
+        public Builder registerPackages(final Class... classes) {
             return this;
         }
 
-        private ClassModelBuilder map(final Class<?> type) {
-            ClassModelBuilder builder = ClassModelBuilder.builder(type);
+        private ClassModel.Builder map(final Class<?> type) {
+            ClassModel.Builder builder = ClassModel.Builder.builder(type);
             TypeResolver resolver = new TypeResolver();
 
             MemberResolver memberResolver = new MemberResolver(resolver);
@@ -242,14 +240,14 @@ public final class PojoCodecProvider implements CodecProvider {
             return builder;
         }
 
-        private void map(final ClassModelBuilder classModelBuilder, final ResolvedField resolvedField) {
+        private void map(final ClassModel.Builder builder, final ResolvedField resolvedField) {
             Field rawField = resolvedField.getRawMember();
             Class<?> erasedType = resolvedField.getType().getErasedType();
 
-            FieldModelBuilder fieldModel =
-                classModelBuilder.addField(resolvedField.getName())
-                                 .type(erasedType, extract(resolvedField.getType()))
-                                 .typeName(erasedType.equals(Object.class) ? rawField.getGenericType().toString() : null);
+            FieldModel.Builder fieldModel =
+                builder.addField(resolvedField.getName())
+                       .type(erasedType, extract(resolvedField.getType()))
+                       .typeName(erasedType.equals(Object.class) ? rawField.getGenericType().toString() : null);
 
             TypeBindings bindings = resolvedField.getType().getTypeBindings();
 

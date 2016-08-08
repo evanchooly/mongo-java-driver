@@ -3,21 +3,21 @@ POJO Codec Configuration
 
 In Morphia, class mapping is done lazily and so can be transparently done at runtime.  Alternately, users can call `morphia.map(SomeClass.class)` to explicitly enumerate the classes to map.  There's also a method to map an entire package.  
 
-PojoCodec
+PojoCodecProvider
 -----
-The entry point for configuring the driver to work with user defined POJOs is the `PojoCodec`.  When creating a provider, a `Builder` is provided through which classes may be registered.  Classes passed to the `register()` method are mapped according to the default logic as defined by the driver.  The models built by this mapping are immutable and can not be changed once passed on to the `PojoCodecProvider`.  
+The entry point for configuring the driver to work with user defined POJOs is the `PojoCodecProvider`.  When creating a provider, a `Builder` is provided through which classes may be registered.  Classes passed to the `register()` method are mapped according to `Convention`s configured on the builder.  If the user does not provide a list of `Convention`s, a default list is used.  The models built by this mapping are immutable and can not be changed once passed on to the `PojoCodecProvider`.  
 
-For these definitions there is `PojoCodecBuilder#buildModel(Class)`.  This method returns a `ClassModelBuilder` that allows for programmatic addition of fields and mapping data.  The API for `PojoCodecProvider.PojoCodecProviderBuilder` is as follows:
+For these definitions there is `PojoCodecProvider.Builder#buildModel(Class)`.  This method returns a `ClassModel.Builder` that allows for programmatic addition of fields and mapping data.  The API for `PojoCodecProvider.Builder` is as follows:
 
 ```java
-    class PojoCodecProviderBuilder {
-		PojoCodecProviderBuilder register(Class<?>... classes)
-		PojoCodecProviderBuilder registerPackages(Class... classes) 
-		PojoCodecProviderBuilder registerPackages(String... packages) 
-		PojoCodecProviderBuilder setConventionPack(ConventionPack conventionPack)
-		ClassModelBuilder buildClassModel(Class<?> type)
-
-		PojoCodecProvider build()
+class PojoCodecProvider.Builder {
+	Builder register(Class<?>... classes)
+	Builder registerPackages(Class... classes) 
+	Builder registerPackages(String... packages) 
+	Builder(List<Convention> conventions)
+	ClassModel.Builder buildClassModel(Class<?> type)
+	
+	PojoCodecProvider build()
 }
 ```
 
@@ -25,21 +25,21 @@ For these definitions there is `PojoCodecBuilder#buildModel(Class)`.  This metho
 2. `registerPackages(String...)` takes the names of the packages to map.  Alternately, `registerPackages(Class...)` will use the package of the given class to discover other packages to map.  In either case, every class found in the packages specified will be mapped. 
 3. `buildClassModel(Class<?>)` allows developers to explicitly configure mapping data for a class.  `build()` is called once class mapping is done and the configurations are ready to be passed in to a `CodecRegistry`.
 
-ClassModelBuilder
+ClassModel.Builder
 ----
-The `ClassModelBuilder` provides the API defining the mapping logic for the underlying `ClassModel` used by the `PojoCodec`.  The API for `ClassModelBuilder` looks like this:
+The `ClassModel.Builder` provides the API defining the mapping logic for the underlying `ClassModel` used by the `PojoCodec`.  The API for `ClassModel.Builder` looks like this:
 
 ```java
-class ClassModelBuilder {
-	FieldModelBuilder addField(String name) 
-	ClassModelBuilder collection(String value) 
-	ClassModelBuilder discriminator(String value) 
+class ClassModel.Builder {
+	FieldModel.Builder addField(String name) 
+	ClassModel.Builder collection(String value) 
+	ClassModel.Builder discriminator(String value) 
 	List<Annotation> getAnnotations() 
-	List<FieldModelBuilder> getFields() 
+	List<FieldModel.Builder> getFields() 
 	Class<?> getType() 
 	String getTypeName() 
-	ClassModelBuilder subclass(Class<?> type) 
-	ClassModelBuilder useDiscriminator(Boolean value) 
+	ClassModel.Builder subclass(Class<?> type) 
+	ClassModel.Builder useDiscriminator(Boolean value) 
 
 	ClassModel build() 
 }
@@ -51,23 +51,23 @@ class ClassModelBuilder {
 4. `discriminatorValue()` determines what value is used to denote the type of the entity.  For example, this discriminator might be stored in a field called `_t` and hold the fully qualified class name of the entity, e.g., `com.acme.Widget`.
 5. `build()` is generally only called by the `PojoCodecProvdierBuilder`.  It should never be necessary to call this method manually.
 
-When building type hierarchies, building each `ClassModel` individually would result in much duplication.  To avoid this, there is the `subclass()` method.  The method returns a new `ClassModelBuilder` instance representing the subclass.  For these instances, values such as the ID and discriminator fields will be "inherited" by the new `ClassModelBuilder` so these settings need not be duplicated.  The collection name will also be inherited resulting in a single collection for the entire hierarchy. All of these settings can be overriden but care should be taken when changing the `discriminatorName()` value.  Changing this value or `collection()` on subtypes will interfere with polymorphic queries.
+When building type hierarchies, building each `ClassModel` individually would result in much duplication.  To avoid this, there is the `subclass()` method.  The method returns a new `ClassModel.Builder` instance representing the subclass.  For these instances, values such as the ID and discriminator fields will be "inherited" by the new `ClassModel.Builder` so these settings need not be duplicated.  The collection name will also be inherited resulting in a single collection for the entire hierarchy. All of these settings can be overriden but care should be taken when changing the `discriminatorName()` value.  Changing this value or `collection()` on subtypes will interfere with polymorphic queries.
 
-FieldModelBuilder
+FieldModel.Builder
 -----
-`FieldModelBuilder` instances allow for configuring mapping information about the fields on an entity.
+`FieldModel.Builder` instances allow for configuring mapping information about the fields on an entity.
 
 ```java
-class FieldModelBuilder {
-	FieldModelBuilder documentFieldName(String name)
-	FieldModelBuilder idField(boolean idField) 
-	FieldModelBuilder include(boolean include) 
-	FieldModelBuilder storeEmptyFields(boolean storeEmptyFields) 
-	FieldModelBuilder storeNullFields(boolean storeNullFields) 
-	FieldModelBuilder type(Class type) 
-	FieldModelBuilder type(Class type, List<Class> parameters) 
-	FieldModelBuilder typeName(String name) 
-	FieldModelBuilder useDiscriminator(boolean useDiscriminator)     
+class FieldModel.Builder {
+	FieldModel.Builder documentFieldName(String name)
+	FieldModel.Builder idField(boolean idField) 
+	FieldModel.Builder include(boolean include) 
+	FieldModel.Builder storeEmptyFields(boolean storeEmptyFields) 
+	FieldModel.Builder storeNullFields(boolean storeNullFields) 
+	FieldModel.Builder type(Class type) 
+	FieldModel.Builder type(Class type, List<Class> parameters) 
+	FieldModel.Builder typeName(String name) 
+	FieldModel.Builder useDiscriminator(boolean useDiscriminator)     
 	FieldModel        build()
 }
 ```
@@ -78,7 +78,7 @@ class FieldModelBuilder {
 4. `storeEmpties()` applies similar logic to "container types."  If field is a `Collection` or a `Map`, it's value might be non-null but it might also be empty.  That is, it's `size()` returns 0.  In these cases, it is often desirable to not store that field at all and thus save some space on disk.  In this case, `builder.storeEmpties(false)` would prevent the mapper from storing those empty values.  This setting has no effect on fields that are not a `Collection` or a `Map`.  **The default behavior is to not store null and empty values.**
 5. `useDiscriminator()` instructs the mapper whether or not to inject the mapped entity's discriminator value in to the persisted document.  This setting only applies to class mapped through the `PojoCodecProvider`.  By default, this discriminator value *is* stored but under certain conditions it can be advantageous to suppress this value.  For example, if the field is an `Address` and there are no known subclasses of `Address` (e.g., perhaps `Address` is final) it can be assumed that there will only be documents that can map to `Address` in the database.  In this situation, storing the discriminator value is redundant and wasteful and can be suppressed.
 6. `included()` can be largely ignored by most developers.  This setting is intended to indicate that a field should or should not be included in serialization.  When building a model manually, if a field shouldn't be included, it simply shouldn't be added.  This setting is used by the conventions system which will help apply general priniciples to mapping configuration rather than requiring explicit decisions at every step.
-7. `idField()` is used to mark a field as the `_id` field in a document.  When this is called on the builder, the `documentName` will be set to `_id`.  If this method is called on multiple fields on a `ClassModelBuilder`, the last one wins and the other fields' `documentName` values will revert back to the field names.
+7. `idField()` is used to mark a field as the `_id` field in a document.  When this is called on the builder, the `documentName` will be set to `_id`.  If this method is called on multiple fields on a `ClassModel.Builder`, the last one wins and the other fields' `documentName` values will revert back to the field names.
 8. `build()` is used the `PojoCodec` builders to create the underlying model used by the codec.  It should never be necessary to call this method manually.
 
 Putting it All Together
@@ -115,7 +115,7 @@ In both of these last two cases, `getCollection()` returns an instance of a `Mon
 
 Conventions
 ======
-Conventions provide a more automated approach to configuring class mapping.  Rather than explicitly making every decision about how to map classes, conventions define a set of broad guidelines that are applied across the range of mapped classes.  Conventions are optionally passed to the `PojoCodecProviderBuilder` when it is first created and applied to every class registered with the builder.  If no list is passed, a default list of Conventions are used.  Users can also provide a `ConventionOptions` instance to configure this set of default Conventions.  If no options are passed, default options are applied.  To sum up, users can pass in:
+Conventions provide a more automated approach to configuring class mapping.  Rather than explicitly making every decision about how to map classes, conventions define a set of broad guidelines that are applied across the range of mapped classes.  Conventions are optionally passed to the `PojoCodecProvider.Builder` when it is first created and applied to every class registered with the builder.  If no list is passed, a default list of Conventions are used.  Users can also provide a `ConventionOptions` instance to configure this set of default Conventions.  If no options are passed, default options are applied.  To sum up, users can pass in:
 
 1. Nothing
 2. A `ConventionOptions` instance
@@ -127,12 +127,12 @@ While these conventions can be almost anything, there is a default set of conven
 
 ```java
 class ConventionOptions {
-ConventionOptions collectionNamingStrategy(CollectionNaming strategy) 
-ConventionOptions collectionNamingStrategy(CollectionNaming strategy, Class<? extends CollectionNamingConvention> impl) 
-ConventionOptions	propertyNamingStrategy(PropertyNaming strategy) 
-ConventionOptions	propertyNamingStrategy(PropertyNaming strategy, Class<? extends PropertyNamingConvention> impl) 
-ConventionOptions	storeEmptyFields(boolean store) 
-ConventionOptions	storeNullFields(boolean store) 
+	ConventionOptions collectionNamingStrategy(CollectionNaming strategy) 
+	ConventionOptions collectionNamingStrategy(CollectionNaming strategy, Class<? extends CollectionNamingConvention> impl) 
+	ConventionOptions propertyNamingStrategy(PropertyNaming strategy) 
+	ConventionOptions propertyNamingStrategy(PropertyNaming strategy, Class<? extends PropertyNamingConvention> impl) 
+	ConventionOptions storeEmptyFields(boolean store) 
+	ConventionOptions storeNullFields(boolean store) 
 }
 ```
 
@@ -142,7 +142,7 @@ ConventionOptions	storeNullFields(boolean store)
 
 ```java
 interface Convention {
- 	apply(ClassModelBuilder model)
+ 	apply(ClassModel.Builder model)
 } 	
 ```
 
@@ -152,6 +152,6 @@ Some basic annotations are provided as part of the `PojoCodec` system providing 
 
 1.  `@Entity` -- This annotations allows for the configuration of a custom collection name as well as toggling whether the discriminator is stored in the serialized documents.  If only one type is ever stored in the mapped collection, the discriminator value is an unnecessary use of space and can be suppressed with this annotation.
 2. `@Discriminator` -- This annotation allows for explicit discriminator values for a given type.  In some cases, the discriminator value configured by the general conventions system may not be correct.  This annotation allows developers to override that value.
-3. `@Id` --  This annotation marks a field as the ID field for the type.  When annotated with this, the document field name will be set to `_id`.  Using this annotation will clear any manually configured ID field set on a `FieldModelBuilder`.
+3. `@Id` --  This annotation marks a field as the ID field for the type.  When annotated with this, the document field name will be set to `_id`.  Using this annotation will clear any manually configured ID field set on a `FieldModel.Builder`.
 4. `@Property` -- This annotation allows for explicit configuration of the document field name.
 5. `@SuppressDiscriminator` -- This annotation instructs the serializer to suppress the inclusion of the discriminator value.  If a mapped class has no subclasses or field will only ever have a reference to the mapped class and not a subclass, the discriminator can be an unnecessary use of space.  Additionally, when applied to say, a `List<Foo>` where the list will only ever hold `Foo` references and not subclasses this annotation can dramatically decrease disk usage.

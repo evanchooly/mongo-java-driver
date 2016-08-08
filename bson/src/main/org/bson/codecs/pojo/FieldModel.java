@@ -23,7 +23,6 @@ import org.bson.codecs.DecoderContext;
 import org.bson.codecs.EncoderContext;
 import org.bson.codecs.configuration.CodecConfigurationException;
 import org.bson.codecs.configuration.CodecRegistry;
-import org.bson.codecs.pojo.ClassModel.ClassModelBuilder;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -384,8 +383,8 @@ public final class FieldModel {
     }
 
     @SuppressWarnings({"rawtypes", "CheckStyle"})
-    public static class FieldModelBuilder {
-        private final ClassModelBuilder parent;
+    public static class Builder {
+        private final ClassModel.Builder parent;
         private final String fieldName;
         private final Map<String, Class> boundTypes = new HashMap<String, Class>();
         private final List<Annotation> annotations;
@@ -401,7 +400,7 @@ public final class FieldModel {
         private String typeName;
         private boolean idField;
 
-        FieldModelBuilder(final ClassModelBuilder parent, final Class<?> parentType, final String fieldName) {
+        Builder(final ClassModel.Builder parent, final Class<?> parentType, final String fieldName) {
             this.parent = parent;
             this.fieldName = fieldName;
             documentFieldName = fieldName;
@@ -414,7 +413,7 @@ public final class FieldModel {
             }
         }
 
-        public FieldModelBuilder bindType(final String name, final Class<?> type) {
+        public Builder bindType(final String name, final Class<?> type) {
             boundTypes.put(name, type);
             return this;
         }
@@ -426,48 +425,48 @@ public final class FieldModel {
          *
          * @return this
          */
-        public FieldModelBuilder documentFieldName(final String name) {
+        public Builder documentFieldName(final String name) {
             this.documentFieldName = name;
             return this;
         }
 
-        public FieldModelBuilder idField(final boolean idField) {
+        public Builder idField(final boolean idField) {
             this.idField = idField;
             return this;
         }
 
-        public FieldModelBuilder storeEmptyFields(final boolean storeEmptyFields) {
+        public Builder storeEmptyFields(final boolean storeEmptyFields) {
             this.storeEmptyFields = storeEmptyFields;
             return this;
         }
 
-        public FieldModelBuilder storeNullFields(final boolean storeNullFields) {
+        public Builder storeNullFields(final boolean storeNullFields) {
             this.storeNullFields = storeNullFields;
             return this;
         }
 
-        public FieldModelBuilder type(final Class type) {
+        public Builder type(final Class type) {
             this.type = type;
             return this;
         }
 
-        public FieldModelBuilder type(final Class type, final List<Class> parameters) {
+        public Builder type(final Class type, final List<Class> parameters) {
             this.type = type;
             this.parameters = new ArrayList<Class>(parameters);
             return this;
         }
 
-        public FieldModelBuilder include(final boolean include) {
+        public Builder include(final boolean include) {
             this.included = include;
             return this;
         }
 
-        public FieldModelBuilder useDiscriminator(final boolean useDiscriminator) {
+        public Builder useDiscriminator(final boolean useDiscriminator) {
             this.useDiscriminator = useDiscriminator;
             return this;
         }
 
-        public FieldModelBuilder typeName(final String name) {
+        public Builder typeName(final String name) {
             typeName = name;
             return this;
         }
@@ -497,7 +496,7 @@ public final class FieldModel {
             return fieldName;
         }
 
-        public ClassModelBuilder getParent() {
+        public ClassModel.Builder getParent() {
             return parent;
         }
 

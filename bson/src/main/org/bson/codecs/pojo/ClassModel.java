@@ -284,25 +284,25 @@ public final class ClassModel {
     }
 
     @SuppressWarnings("CheckStyle")
-    public static class ClassModelBuilder {
-        private ClassModelBuilder parent;
+    public static class Builder {
+        private Builder parent;
         private final Class<?> type;
-        private final List<FieldModel.FieldModelBuilder> fields = new ArrayList<FieldModel.FieldModelBuilder>();
+        private final List<FieldModel.Builder> fields = new ArrayList<FieldModel.Builder>();
         private String collection;
         private Boolean useDiscriminator = true;
         private String discriminator;
         private List<Annotation> annotations;
 
-        public static ClassModelBuilder builder(final Class<?> type) {
-            return new ClassModelBuilder(type);
+        public static Builder builder(final Class<?> type) {
+            return new Builder(type);
         }
 
-        ClassModelBuilder(final ClassModelBuilder parent, final Class<?> type) {
+        Builder(final Builder parent, final Class<?> type) {
             this(type);
             this.parent = parent;
         }
 
-        ClassModelBuilder(final Class<?> type) {
+        Builder(final Class<?> type) {
             this.type = type;
             collection = type.getSimpleName();
             annotations = asList(type.getAnnotations());
@@ -312,8 +312,8 @@ public final class ClassModel {
             return type.getSimpleName();
         }
 
-        public FieldModel.FieldModelBuilder addField(final String name) {
-            FieldModel.FieldModelBuilder field = new FieldModel.FieldModelBuilder(this, type, name);
+        public FieldModel.Builder addField(final String name) {
+            FieldModel.Builder field = new FieldModel.Builder(this, type, name);
             fields.add(field);
             return field;
         }
@@ -322,7 +322,7 @@ public final class ClassModel {
             return annotations;
         }
 
-        public List<FieldModel.FieldModelBuilder> getFields() {
+        public List<FieldModel.Builder> getFields() {
             return fields;
         }
 
@@ -330,20 +330,20 @@ public final class ClassModel {
             return type;
         }
 
-        public ClassModelBuilder collection(final String value) {
+        public Builder collection(final String value) {
             this.collection = value;
             return this;
         }
 
-        public ClassModelBuilder discriminator(final String value) {
+        public Builder discriminator(final String value) {
             return this;
         }
-        public ClassModelBuilder useDiscriminator(final Boolean value) {
+        public Builder useDiscriminator(final Boolean value) {
             return this;
         }
 
-        public ClassModelBuilder subclass(final Class<?> type) {
-            return new ClassModelBuilder(this, type);
+        public Builder subclass(final Class<?> type) {
+            return new Builder(this, type);
         }
 
         public ClassModel build() {
