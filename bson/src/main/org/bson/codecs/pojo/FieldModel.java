@@ -15,27 +15,19 @@
  */
 package org.bson.codecs.pojo;
 
-import com.fasterxml.classmate.ResolvedType;
-import org.bson.BsonReader;
-import org.bson.BsonWriter;
-import org.bson.codecs.Codec;
-import org.bson.codecs.DecoderContext;
-import org.bson.codecs.EncoderContext;
 import org.bson.codecs.configuration.CodecConfigurationException;
-import org.bson.codecs.configuration.CodecRegistry;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 
 /**
  * Represents a field on a class and stores various metadata such as generic parameters
@@ -44,60 +36,60 @@ import static java.util.Arrays.asList;
  */
 @SuppressWarnings({"unchecked", "rawtypes"})
 public final class FieldModel {
-    private final Field rawField;
-    private final ClassModel owner;
-    private final CodecRegistry registry;
+    private final Field field;
     private final Class<?> type;
-    private final Map<String, ResolvedType> boundTypes = new HashMap<String, ResolvedType>();
+    private final Map<String, Class<?>> boundTypes;
     private final String typeName;
-    private final List<Class> types;
+    private final List<Class<?>> types;
     private final List<Annotation> annotations;
-    private String name;
+    private final String name;
+    private final boolean storeNulls;
+    private final boolean storeEmpties;
+    private final boolean useDiscriminator;
+
     private ShouldSerialize shouldSerialize = new DefaultShouldSerialize();
-    private Codec<Object> codec;
-    private boolean storeNulls;
-    private boolean storeEmpties;
-    private Boolean useDiscriminator;
-    private boolean idField;
 
     /**
      * Create the FieldModel
      *
-     * @param classModel the owning ClassModel
-     * @param registry   the codec registry for this codec
-     * @param field      the field to model
+     * @param field
+     * @param name
+     * @param type
+     * @param storeNulls
+     * @param storeEmpties
+     * @param useDiscriminator
+     * @param annotations
      */
-/*
-    FieldModel(final ClassModel classModel, final CodecRegistry registry, final ResolvedField field) {
-        this.type = field.getType().getErasedType();
-        this.registry = registry;
-        owner = classModel;
-        rawField = field.getRawMember();
-        rawField.setAccessible(true);
-        name = field.getName();
+    FieldModel(final Field field, final String name, final Class<?> type, final List<Class<?>> types,
+               final String typeName, final boolean storeNulls, final boolean storeEmpties, final Boolean useDiscriminator,
+               final List<Annotation> annotations, final Map<String, Class<?>> boundTypes) {
+        this.type = type;
+        this.types = types;
+        this.boundTypes = boundTypes;
+        this.field = field;
+        this.storeNulls = storeNulls;
+        this.storeEmpties = storeEmpties;
+        this.useDiscriminator = useDiscriminator;
+        this.name = name;
+        this.annotations = annotations;
+        this.typeName = typeName;
 
-        TypeBindings bindings = field.getType().getTypeBindings();
-        for (int index = 0; index < bindings.size(); index++) {
-            addTypeBinding(bindings.getBoundName(index), bindings.getBoundType(index));
+        if (field != null) {
+            this.field.setAccessible(true);
         }
-        typeName = getType().equals(Object.class) ? rawField.getGenericType().toString() : null;
-        types = FieldModel.extract(field.getType());
-        annotations = field.getAnnotations().asList();
     }
-*/
 
-    /**
+    /*
      * Copy constructor that changes the field type
      *
      * @param classModel the owner
      * @param original   the FieldModel to copy
      * @param type       the new type
      */
-    FieldModel(final ClassModel classModel, final FieldModel original, final Class type) {
+    FieldModel(final FieldModel original, final Class type) {
         this.type = type;
-        rawField = original.rawField;
-        owner = classModel;
-        registry = original.registry;
+        boundTypes = original.boundTypes;
+        field = original.field;
         types = original.types;
         types.set(types.size() - 1, type);
         typeName = null;
@@ -105,7 +97,6 @@ public final class FieldModel {
         storeNulls = original.storeNulls;
         storeEmpties = original.storeEmpties;
         useDiscriminator = original.useDiscriminator;
-        idField = original.idField;
         annotations = original.annotations;
     }
 
@@ -119,30 +110,23 @@ public final class FieldModel {
     }
 
     /**
-     * Sets the field on entity with the given value
+     * Creates a new Builder to specify the mapping data of a field
      *
-     * @param entity  the entity to update
-     * @param reader  The BsonReader to use
-     * @param context the DecoderContext to use
+     * @param name    the name of the field
+     * @return the Builder instance
      */
-    public void decode(final Object entity, final BsonReader reader, final DecoderContext context) {
-        set(entity, getCodec().decode(reader, context));
+    static Builder builder(final ClassModel.Builder parent, final String name) {
+        return new Builder(parent, name);
     }
 
     /**
-     * This method encodes the field value to the BSON writer.
+     * Creates a new Builder to specify the mapping data of a field
      *
-     * @param writer         the BsonWriter to use if this field is included
-     * @param entity         the entity from which to pull the value this FieldModel represents
-     * @param encoderContext the encoding context
+     * @param field    the field
+     * @return the Builder instance
      */
-    public void encode(final BsonWriter writer, final Object entity, final EncoderContext encoderContext) {
-        Object value = get(entity);
-        Codec<Object> fieldCodec = getCodec();
-        if (shouldSerialize.evaluate(this, value)) {
-            writer.writeName(getName());
-            fieldCodec.encode(writer, value, encoderContext);
-        }
+    static Builder builder(final ClassModel.Builder parent, final Field field) {
+        return new Builder(parent, field);
     }
 
     /**
@@ -153,7 +137,7 @@ public final class FieldModel {
      */
     public Object get(final Object entity) {
         try {
-            return rawField.get(entity);
+            return field.get(entity);
         } catch (final IllegalAccessException e) {
             throw new IllegalStateException(e.getMessage(), e);
         }
@@ -172,7 +156,7 @@ public final class FieldModel {
      * @return the unmapped field name as defined in the source file.
      */
     public String getFieldName() {
-        return rawField.getName();
+        return field.getName();
     }
 
     /**
@@ -182,13 +166,8 @@ public final class FieldModel {
         return name;
     }
 
-    /**
-     * Suggests a value for the name with a particular weight.
-     *
-     * @param value the suggested value
-     */
-    public void setName(final String value) {
-        renameField(value);
+    ShouldSerialize isShouldSerialize() {
+        return shouldSerialize;
     }
 
     /**
@@ -205,6 +184,10 @@ public final class FieldModel {
         return typeName;
     }
 
+    public List<Class<?>> getTypes() {
+        return types;
+    }
+
     /**
      * @param annotation the annotation to find
      * @return true if the field is marked with the given annotation
@@ -218,27 +201,6 @@ public final class FieldModel {
         return false;
     }
 
-    /**
-     * @return true if this field is the ID field for its ClassModel
-     */
-    public boolean isIdField() {
-        return idField;
-    }
-
-    /**
-     * Sets this field as the ID field or not.
-     *
-     * @param idField true if this field is the ID field
-     */
-    public void setIdField(final boolean idField) {
-        if (idField) {
-            this.idField = idField;
-            renameField("_id");
-        } else if (this.idField) {
-            this.idField = false;
-            renameField(getFieldName());
-        }
-    }
 
     /**
      * Returns whether to store empty container field values (List/Map/Set) or not.
@@ -247,15 +209,6 @@ public final class FieldModel {
      */
     public boolean isStoreEmpties() {
         return storeEmpties;
-    }
-
-    /**
-     * Sets whether to store empty container field values (List/Map/Set) or not.
-     *
-     * @param storeEmpties true if empty field values should be serialized to MongoDB
-     */
-    public void setStoreEmpties(final boolean storeEmpties) {
-        this.storeEmpties = storeEmpties;
     }
 
     /**
@@ -268,20 +221,11 @@ public final class FieldModel {
     }
 
     /**
-     * Sets whether to store null field values or not.
-     *
-     * @param storeNulls true if null field values should be serialized to MongoDB
-     */
-    public void setStoreNulls(final boolean storeNulls) {
-        this.storeNulls = storeNulls;
-    }
-
-    /**
      * Determines if a discriminator should be used while saving this field's value to the database.  Only affects embedded entities.
      *
-     * @return true if the discriminator should be used.  null/false otherwise.
+     * @return true if the discriminator should be used.  false otherwise.
      */
-    public Boolean isUseDiscriminator() {
+    public boolean isUseDiscriminator() {
         return useDiscriminator;
     }
 
@@ -293,124 +237,66 @@ public final class FieldModel {
      */
     public void set(final Object entity, final Object value) {
         try {
-            rawField.set(entity, value);
+            field.set(entity, value);
         } catch (final IllegalAccessException e) {
             throw new IllegalStateException(e.getMessage(), e);
         }
     }
 
-    /**
-     * Instructs the {@link Codec} to use the discriminator
-     *
-     * @param useDiscriminator true if the discriminator should be used.
-     */
-    public void setUseDiscriminator(final Boolean useDiscriminator) {
-        this.useDiscriminator = useDiscriminator;
+    void setShouldSerialize(final ShouldSerialize shouldSerialize) {
+        this.shouldSerialize = shouldSerialize;
     }
 
     @Override
     public String toString() {
-        return format("%s#%s:%s", owner.getName(), getName(), getType().getName());
+        return format("%s#%s:%s", field.getDeclaringClass().getName(), getName(), getType().getName());
     }
 
     /**
      * @param typeName the parameterized type name
      * @return type bound for the given name
      */
-    ResolvedType getBoundType(final String typeName) {
+    Class<?> getBoundType(final String typeName) {
         return boundTypes.get(typeName);
     }
 
     /**
-     * Binds a type name to an explicit type
-     *
-     * @param boundName the type/paramater name.  e.g., T
-     * @param type      the type to be bound to the given name
+     * This class provides a Builder for configuring mapping data about a field on a type.
      */
-    void addTypeBinding(final String boundName, final ResolvedType type) {
-        boundTypes.put(boundName, type);
-    }
-
-    void renameField(final String newName) {
-        if (idField && !"_id".equals(newName)) {
-            throw new CodecConfigurationException("ID fields can not be renamed.  They must be mapped as '_id.");
-        }
-        if (!newName.equals(name)) {
-            Map<String, FieldModel> fieldMap = owner.getFieldMap();
-            FieldModel fieldModel = fieldMap.get(newName);
-            if (fieldModel != null && !equals(fieldModel)) {
-                throw new CodecConfigurationException(
-                    format("'%s' is already mapped to '%s'", newName, fieldModel.getFieldName()));
-            }
-            if (!name.equals(getFieldName())) {
-                fieldMap.remove(name);
-            }
-            name = newName;
-            fieldMap.put(newName, this);
-        }
-    }
-
-    Codec<Object> getCodec() {
-        if (codec == null) {
-            codec = wrap(types);
-        }
-        return codec;
-    }
-
-    Codec<Object> wrap(final List<Class> types) {
-        Codec<Object> fieldCodec = null;
-        Class first = types.get(0);
-        List<Class> remainder = types.size() > 1 ? types.subList(1, types.size()) : Collections.<Class>emptyList();
-        if (Collection.class.isAssignableFrom(first)) {
-            fieldCodec = new CollectionCodec(first, wrap(remainder));
-            shouldSerialize = new CollectionShouldSerialize();
-        } else if (Map.class.isAssignableFrom(first)) {
-            fieldCodec = new MapCodec(first, wrap(remainder));
-            shouldSerialize = new MapShouldSerialize();
-        } else {
-            try {
-                fieldCodec = registry.get(first);
-                if (fieldCodec instanceof PojoCodec) {
-                    fieldCodec = ((PojoCodec<Object>) fieldCodec).specialize(this);
-                }
-            } catch (final CodecConfigurationException e) {
-                throw new CodecConfigurationException(format("Can not find codec for the field '%s' of type '%s'", name,
-                                                             first.getSimpleName()), e);
-            }
-        }
-
-        return fieldCodec;
-    }
-
     @SuppressWarnings({"rawtypes", "CheckStyle"})
     public static class Builder {
         private final ClassModel.Builder parent;
         private final String fieldName;
-        private final Map<String, Class> boundTypes = new HashMap<String, Class>();
-        private final List<Annotation> annotations;
+        private String typeName;
+        private final Map<String, Class<?>> boundTypes = new HashMap<String, Class<?>>();
+        private List<Annotation> annotations;
 
-        private final Field javaField;
+        private Field javaField;
         private String documentFieldName;
         private Class type;
-        private ArrayList<Class> parameters;
+        private List<Class<?>> parameters;
         private boolean included = true;
         private boolean useDiscriminator = true;
         private boolean storeEmptyFields = true;
         private boolean storeNullFields = true;
-        private String typeName;
-        private boolean idField;
 
-        Builder(final ClassModel.Builder parent, final Class<?> parentType, final String fieldName) {
+
+        Builder(final ClassModel.Builder parent, final String fieldName) {
             this.parent = parent;
             this.fieldName = fieldName;
-            documentFieldName = fieldName;
-            try {
-                javaField = parentType.getDeclaredField(fieldName);
-                type = javaField.getType();
-                annotations = asList(javaField.getAnnotations());
-            } catch (NoSuchFieldException e) {
-                throw new MappingException(e);
-            }
+
+            parent.addField(fieldName, this);
+            documentFieldName(fieldName);
+
+            annotations = emptyList();
+        }
+
+        Builder(final ClassModel.Builder parent, final Field javaField) {
+            this(parent, javaField.getName());
+
+            this.javaField = javaField;
+            type = javaField.getType();
+            annotations = asList(javaField.getAnnotations());
         }
 
         public Builder bindType(final String name, final Class<?> type) {
@@ -426,13 +312,24 @@ public final class FieldModel {
          * @return this
          */
         public Builder documentFieldName(final String name) {
+            if (!name.equals(fieldName) && parent.getField(name) != null) {
+                throw new CodecConfigurationException(format("A naming collision has been found on %s between '%s' and '%s'",
+                                                             parent.getType().getName(), fieldName, parent.getField(name).fieldName));
+            }
+
+            if (documentFieldName != null && !documentFieldName.equals(fieldName)) {
+                parent.removeField(documentFieldName);
+            }
             this.documentFieldName = name;
+            parent.addField(documentFieldName, this);
             return this;
         }
 
-        public Builder idField(final boolean idField) {
-            this.idField = idField;
-            return this;
+        /**
+         * @return the mapped name to use when storing this field in a document
+         */
+        public String getDocumentFieldName() {
+            return documentFieldName;
         }
 
         public Builder storeEmptyFields(final boolean storeEmptyFields) {
@@ -450,15 +347,18 @@ public final class FieldModel {
             return this;
         }
 
-        public Builder type(final Class type, final List<Class> parameters) {
+        public Builder type(final Class type, final List<Class<?>> parameters) {
             this.type = type;
-            this.parameters = new ArrayList<Class>(parameters);
+            this.parameters = new ArrayList<Class<?>>(parameters);
             return this;
         }
 
         public Builder include(final boolean include) {
             this.included = include;
             return this;
+        }
+        public boolean isIncluded() {
+            return this.included;
         }
 
         public Builder useDiscriminator(final boolean useDiscriminator) {
@@ -471,33 +371,34 @@ public final class FieldModel {
             return this;
         }
 
+        public Builder annotations(final Annotation[] annotations) {
+            this.annotations = asList(annotations);
+            return this;
+        }
+
         /**
          * @return true if this field is marked as final
          */
         public boolean isFinal() {
-            return Modifier.isFinal(javaField.getModifiers());
+            return javaField != null && Modifier.isFinal(javaField.getModifiers());
         }
 
         /**
          * @return true if this field is marked as transient
          */
         public boolean isTransient() {
-            return Modifier.isTransient(javaField.getModifiers());
+            return javaField != null && Modifier.isTransient(javaField.getModifiers());
         }
 
         /**
          * @return true if this field is marked as static
          */
         public boolean isStatic() {
-            return Modifier.isStatic(javaField.getModifiers());
+            return javaField != null && Modifier.isStatic(javaField.getModifiers());
         }
 
         public String getFieldName() {
             return fieldName;
-        }
-
-        public ClassModel.Builder getParent() {
-            return parent;
         }
 
         public List<Annotation> annotations() {
@@ -505,7 +406,23 @@ public final class FieldModel {
         }
 
         public FieldModel build() {
-            throw new UnsupportedOperationException();
+            return new FieldModel(
+                javaField,
+                documentFieldName,
+                type,
+                parameters,
+                typeName,
+                storeNullFields,
+                storeEmptyFields,
+                useDiscriminator,
+                annotations,
+                boundTypes
+            );
+        }
+
+        @Override
+        public String toString() {
+            return format("FieldModel.Builder{javaField=%s}", javaField);
         }
     }
 }

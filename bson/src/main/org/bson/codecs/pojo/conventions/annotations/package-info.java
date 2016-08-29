@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2016 MongoDB, Inc.
+ * Copyright 2008-2016 MongoDB, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,8 @@
  * limitations under the License.
  */
 
-package org.bson.codecs.pojo.entities;
-
-import org.bson.types.ObjectId;
-
-public class BadField {
-    private ObjectId id;
-    private Object field;
-}
+/**
+ * This package defines various annotations used by the driver provided
+ * {@link org.bson.codecs.pojo.conventions.AnnotationConvention}
+ */
+package org.bson.codecs.pojo.conventions.annotations;

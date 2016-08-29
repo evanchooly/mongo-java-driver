@@ -16,6 +16,7 @@
 
 package org.bson.codecs.pojo.entities;
 
+import org.bson.codecs.pojo.conventions.annotations.Property;
 import org.bson.types.ObjectId;
 
 import java.util.ArrayList;
@@ -28,6 +29,7 @@ public class Post {
     private Date posted;
     private String body;
     private List<Comment> comments = new ArrayList<Comment>();
+    @Property(useDiscriminator = false)
     private List<Comment> bare = new ArrayList<Comment>();
 
     public List<Comment> getBare() {

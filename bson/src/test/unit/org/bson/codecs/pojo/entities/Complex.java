@@ -16,18 +16,17 @@
 
 package org.bson.codecs.pojo.entities;
 
+import org.bson.codecs.pojo.conventions.annotations.Property;
 import org.bson.types.ObjectId;
 
 public class Complex {
     //CHECKSTYLE:OFF
-    @SuppressWarnings({"PublicField", "unused", "StaticNonFinalField"})
-    public static IntChild publicField = new IntChild(42);
-    @SuppressWarnings({"ProtectedField", "unused"})
+    public static IntChild staticField = new IntChild(42);
     protected StringChild protectedField;
-    @SuppressWarnings({"ProtectedField", "unused"})
     protected transient BaseGenericType<Integer> transientField;
     //CHECKSTYLE:ON
     private ObjectId id;
+    @Property(useDiscriminator = false)
     private IntChild intChild;
     private StringChild stringChild;
     private BaseGenericType<String> baseType;
@@ -40,14 +39,6 @@ public class Complex {
         this.intChild = intChild;
         this.stringChild = stringChild;
         this.baseType = baseType;
-    }
-
-    public static IntChild getPublicField() {
-        return Complex.publicField;
-    }
-
-    public static void setPublicField(final IntChild publicField) {
-        Complex.publicField = publicField;
     }
 
     public BaseGenericType<String> getBaseType() {

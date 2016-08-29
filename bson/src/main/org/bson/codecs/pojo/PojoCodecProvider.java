@@ -15,33 +15,16 @@
  */
 package org.bson.codecs.pojo;
 
-import com.fasterxml.classmate.AnnotationConfiguration.StdConfiguration;
-import com.fasterxml.classmate.AnnotationInclusion;
-import com.fasterxml.classmate.MemberResolver;
-import com.fasterxml.classmate.ResolvedType;
-import com.fasterxml.classmate.ResolvedTypeWithMembers;
-import com.fasterxml.classmate.TypeBindings;
-import com.fasterxml.classmate.TypeResolver;
-import com.fasterxml.classmate.members.ResolvedField;
 import org.bson.codecs.Codec;
-import org.bson.codecs.configuration.CodecConfigurationException;
 import org.bson.codecs.configuration.CodecProvider;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.conventions.Convention;
-import org.bson.codecs.pojo.conventions.DefaultAnnotationConvention;
-import org.bson.codecs.pojo.conventions.FieldSelectionConvention;
-import org.bson.codecs.pojo.conventions.FieldStorageConvention;
 
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static java.lang.String.format;
 
 /**
  * Provides Codecs for various POJOs via the ClassModel abstractions.
@@ -50,17 +33,16 @@ import static java.lang.String.format;
  */
 @SuppressWarnings("rawtypes")
 public final class PojoCodecProvider implements CodecProvider {
-    private final List<ClassModel> registered;
+    private final Map<Class, ClassModel.Builder> builders;
+    private final Set<Class<?>> registered;
+    private final Set<Package> packages;
     private final List<Convention> conventions;
 
-    /**
-     * Creates a provider for a given set of classes.
-     *
-     * @param registered  the models to use
-     * @param conventions the {@link Convention}s to apply to the mapped classes
-     */
-    public PojoCodecProvider(final List<ClassModel> registered, final List<Convention> conventions) {
+    private PojoCodecProvider(final Map<Class, ClassModel.Builder> builders, final Set<Class<?>> registered, final Set<Package> packages,
+                             final List<Convention> conventions) {
+        this.builders = builders;
         this.registered = registered;
+        this.packages = packages;
         this.conventions = conventions;
     }
 
@@ -72,7 +54,7 @@ public final class PojoCodecProvider implements CodecProvider {
      * @see Builder#register(Class[])
      */
     public static Builder builder() {
-        return builder(new ConventionOptions());
+        return builder(ConventionOptions.DEFAULT_CONVENTIONS);
     }
 
     /**
@@ -84,17 +66,7 @@ public final class PojoCodecProvider implements CodecProvider {
      * @see Builder#register(Class[])
      */
     public static Builder builder(final ConventionOptions options) {
-        List<Convention> conventions = new ArrayList<Convention>();
-        conventions.add(new FieldSelectionConvention());
-        FieldStorageConvention convention = new FieldStorageConvention();
-        convention.setStoreNulls(options.isStoreNullFields());
-        convention.setStoreEmpties(options.isStoreEmptyFields());
-        conventions.add(convention);
-        conventions.add(options.getCollectionNamingConvention());
-        conventions.add(options.getPropertyNamingConvention());
-        conventions.add(new DefaultAnnotationConvention());
-
-        return new Builder(conventions);
+        return new Builder(options.getConventions());
     }
 
     /**
@@ -111,57 +83,31 @@ public final class PojoCodecProvider implements CodecProvider {
 
     @Override
     public <T> Codec<T> get(final Class<T> clazz, final CodecRegistry registry) {
-        return registered.contains(clazz) ? new PojoCodec<T>(new ClassModel(registry, clazz), registry) : null;
+        if (registered.contains(clazz) || packages.contains(clazz.getPackage())) {
+            return new PojoCodec<T>(ClassModel.builder(clazz)
+                                              .map()
+                                              .apply(conventions).build(),
+                                    registry);
+        }
+        ClassModel.Builder builder = builders.get(clazz);
+        if (builder != null) {
+            return new PojoCodec<T>(builder.apply(conventions).build(), registry);
+        }
+        return null;
     }
 
     /**
      * A Builder for the PojoCodecProvider
      */
-    public static class Builder {
+    @SuppressWarnings("CheckStyle")
+    public static final class Builder {
         private final Set<Class<?>> registered = new HashSet<Class<?>>();
-        private final List<ClassModel.Builder> pojoBuilders = new ArrayList<ClassModel.Builder>();
+        private final Set<Package> packages = new HashSet<Package>();
         private final List<Convention> conventions;
+        private final Map<Class, ClassModel.Builder> builders = new HashMap<Class, ClassModel.Builder>();
 
         private Builder(final List<Convention> conventions) {
             this.conventions = conventions;
-        }
-
-        static List<Class> extract(final ResolvedType type) {
-            List<Class> classes = new ArrayList<Class>();
-            Class erasedType = type.getErasedType();
-            if (Collection.class.isAssignableFrom(erasedType)) {
-                ResolvedType collectionType = type.getTypeParameters().get(0);
-                Class containerClass;
-                if (Set.class.equals(erasedType)) {
-                    containerClass = HashSet.class;
-                } else if (List.class.equals(erasedType) || Collection.class.equals(erasedType)) {
-                    containerClass = ArrayList.class;
-                } else {
-                    containerClass = erasedType;
-                }
-                classes.add(containerClass);
-                classes.addAll(extract(collectionType));
-            } else if (Map.class.isAssignableFrom(erasedType)) {
-                List<ResolvedType> types = type.getTypeParameters();
-                ResolvedType keyType = types.get(0);
-                ResolvedType valueType = types.get(1);
-                if (!keyType.getErasedType().equals(String.class)) {
-                    throw new CodecConfigurationException(format("Map key types must be Strings.  Found %s instead.",
-                                                                 keyType.getErasedType()));
-                }
-                Class<?> containerClass;
-                if (Map.class.equals(erasedType)) {
-                    containerClass = HashMap.class;
-                } else {
-                    containerClass = erasedType;
-                }
-                classes.add(containerClass);
-                classes.addAll(extract(valueType));
-            } else {
-                classes.add(type.getErasedType());
-            }
-
-            return classes;
         }
 
         /**
@@ -171,36 +117,27 @@ public final class PojoCodecProvider implements CodecProvider {
          * @see #register(Class...)
          */
         public PojoCodecProvider build() {
-            for (Class<?> type : registered) {
-                pojoBuilders.add(map(type));
-            }
-            List<ClassModel> models = new ArrayList<ClassModel>();
-            for (ClassModel.Builder builder : pojoBuilders) {
-                for (Convention convention : conventions) {
-                    convention.apply(builder);
-                }
-
-                builder.build();
-            }
-            return new PojoCodecProvider(models, conventions);
+            return new PojoCodecProvider(builders, registered, packages, conventions);
         }
 
-        /**
+        /*
          * Registers a class with the builder for inclusion in the Provider.  This method allows for explicit, programmatic configuration
          * of the mapping information for the class.
          *
          * @param type the type to add
          * @return this
          */
+/*
         public ClassModel.Builder buildClassModel(final Class<?> type) {
             ClassModel.Builder builder = ClassModel.Builder.builder(type);
             pojoBuilders.add(builder);
             return builder;
         }
+*/
 
         /**
-         * Registers a class with the builder for inclusion in the Provider.  Registration will automatically map the classes using the
-         * mapping configuration defined on the builder.
+         * Registers a class with the builder for inclusion in the Provider.  This will allow classes in the given packages to mapped
+         * for use with PojoCodecProvider.
          *
          * @param classes the classes to register
          * @return this
@@ -212,48 +149,30 @@ public final class PojoCodecProvider implements CodecProvider {
             return this;
         }
 
-        public Builder registerPackages(final String... packages) {
+        public Builder register(final ClassModel.Builder builder) {
+            builders.put(builder.getType(), builder);
             return this;
         }
 
+        public Builder register(final ClassModel.Builder... list) {
+            for (ClassModel.Builder builder : list) {
+                builders.put(builder.getType(), builder);
+            }
+            return this;
+        }
+
+        /**
+         * Registers the packages of the given classes with the builder for inclusion in the Provider.  This will allow classes in the
+         * given packages to mapped for use with PojoCodecProvider.
+         *
+         * @param classes classes in the packages to register
+         * @return this
+         */
         public Builder registerPackages(final Class... classes) {
+            for (Class aClass : classes) {
+                packages.add(aClass.getPackage());
+            }
             return this;
-        }
-
-        private ClassModel.Builder map(final Class<?> type) {
-            ClassModel.Builder builder = ClassModel.Builder.builder(type);
-            TypeResolver resolver = new TypeResolver();
-
-            MemberResolver memberResolver = new MemberResolver(resolver);
-            ResolvedType resolved = resolver.resolve(type);
-            ResolvedTypeWithMembers resolvedType =
-                memberResolver.resolve(resolved, new StdConfiguration(AnnotationInclusion.INCLUDE_AND_INHERIT_IF_INHERITED), null);
-
-            builder.collection(type.getSimpleName());
-            builder.discriminator(type.getName());
-            builder.useDiscriminator(true);
-
-            for (final ResolvedField field : resolvedType.getMemberFields()) {
-                map(builder, field);
-            }
-
-            return builder;
-        }
-
-        private void map(final ClassModel.Builder builder, final ResolvedField resolvedField) {
-            Field rawField = resolvedField.getRawMember();
-            Class<?> erasedType = resolvedField.getType().getErasedType();
-
-            FieldModel.Builder fieldModel =
-                builder.addField(resolvedField.getName())
-                       .type(erasedType, extract(resolvedField.getType()))
-                       .typeName(erasedType.equals(Object.class) ? rawField.getGenericType().toString() : null);
-
-            TypeBindings bindings = resolvedField.getType().getTypeBindings();
-
-            for (int index = 0; index < bindings.size(); index++) {
-                fieldModel.bindType(bindings.getBoundName(index), bindings.getBoundType(index).getErasedType());
-            }
         }
     }
 }

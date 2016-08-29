@@ -34,9 +34,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
+import static org.bson.codecs.pojo.ClassModel.Builder.extract;
 import static org.junit.Assert.assertEquals;
 
-@SuppressWarnings("rawtypes")
 public class FieldModelTest {
     @Test
     public void testExtract() {
@@ -50,22 +50,22 @@ public class FieldModelTest {
         ResolvedField[] fields = type.getMemberFields();
         for (ResolvedField field : fields) {
             if("tripleList".equals(field.getName())) {
-                compare(FieldModel.extract(field.getType()),
-                        Arrays.<Class>asList(ArrayList.class, ArrayList.class, ArrayList.class, BaseGenericType.class));
+                compare(extract(field.getType()),
+                        Arrays.asList(ArrayList.class, ArrayList.class, ArrayList.class, BaseGenericType.class));
             } else if ("tripleMap".equals(field.getName())) {
-                compare(FieldModel.extract(field.getType()), Arrays.<Class>asList(HashMap.class, HashMap.class, HashMap.class, BaseGenericType.class));
+                compare(extract(field.getType()), Arrays.asList(HashMap.class, HashMap.class, HashMap.class, BaseGenericType.class));
             } else if ("mixed".equals(field.getName())) {
-                compare(FieldModel.extract(field.getType()),
-                        Arrays.<Class>asList(HashMap.class, ArrayList.class, HashSet.class, BaseGenericType.class));
+                compare(extract(field.getType()),
+                        Arrays.asList(HashMap.class, ArrayList.class, HashSet.class, BaseGenericType.class));
             }
         }
 
     }
 
-    protected void compare(final List<Class> list, final List<Class> expected) {
+    protected void compare(final List<Class<?>> list, final List<Class<?>> expected) {
         assertEquals(expected.size(), list.size());
-        Iterator<Class> iterator = list.iterator();
-        Iterator<Class> expectedItertator = expected.iterator();
+        Iterator<Class<?>> iterator = list.iterator();
+        Iterator<Class<?>> expectedItertator = expected.iterator();
         while(iterator.hasNext()) {
             assertEquals(expectedItertator.next(), iterator.next());
         }

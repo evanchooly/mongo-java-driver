@@ -30,7 +30,6 @@ import org.bson.codecs.EncoderContext;
 import org.bson.codecs.ValueCodecProvider;
 import org.bson.codecs.configuration.CodecConfigurationException;
 import org.bson.codecs.configuration.CodecProvider;
-import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.entities.BaseGenericType;
 import org.bson.codecs.pojo.entities.Complex;
@@ -52,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
+import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -152,7 +152,7 @@ public class PojoCodecTest {
         BsonDocument document = new BsonDocument();
 
         PojoCodec<Complex> complexCodec = (PojoCodec<Complex>) registry.get(Complex.class);
-        complexCodec.getClassModel().getField("intChild").setUseDiscriminator(false);
+//        complexCodec.getClassModel().getField("intChild").setUseDiscriminator(false);
 
         complexCodec.encode(new BsonDocumentWriter(document), complex, EncoderContext.builder().build());
         assertEquals(null, document.getDocument("intChild").get("_t"));
@@ -298,6 +298,7 @@ public class PojoCodecTest {
     @Test
     public void testStoreEmpties() {
         CodecRegistry registry = getCodecRegistry(ContainerTypes.class, BaseGenericType.class);
+
         BsonDocument bsonDocument = new BsonDocument();
         ContainerTypes containerTypes = new ContainerTypes();
         containerTypes.setList(new ArrayList<BaseGenericType<?>>());
@@ -308,15 +309,29 @@ public class PojoCodecTest {
         codec.encode(new BsonDocumentWriter(bsonDocument), containerTypes, EncoderContext.builder().build());
 
         assertEquals(bsonDocument.keySet().toString(), 1, bsonDocument.size());
+
         bsonDocument.clear();
-        codec.getClassModel().getField("map").setStoreEmpties(true);
-        codec.getClassModel().getField("list").setStoreEmpties(true);
+
+        PojoCodecProvider provider = PojoCodecProvider.builder(ConventionOptions.builder()
+                                                                   .storeEmptyFields(true)
+                                                                   .storeNullFields(true)
+                                                              .build())
+                                                      .register(ContainerTypes.class, BaseGenericType.class)
+                                                      .build();
+        codec = (PojoCodec<ContainerTypes>) fromProviders(provider, new ValueCodecProvider())
+            .get(ContainerTypes.class);
+
         codec.encode(new BsonDocumentWriter(bsonDocument), containerTypes, EncoderContext.builder().build());
-        assertEquals(3, bsonDocument.size());
 
         ContainerTypes decoded = codec.decode(new BsonDocumentReader(bsonDocument), DecoderContext.builder().build());
         assertNotNull(decoded.getMap());
+        assertTrue(decoded.getMap().isEmpty());
         assertNotNull(decoded.getList());
+        assertTrue(decoded.getList().isEmpty());
+
+        assertNull(decoded.getDoubleMap());
+        assertNull(decoded.getDoubleList());
+        assertNull(decoded.getDoubleSet());
     }
 
     @Test
@@ -332,26 +347,24 @@ public class PojoCodecTest {
         codec.encode(new BsonDocumentWriter(document), containerTypes, EncoderContext.builder().build());
         assertEquals(1, document.size());
 
-        codec.getClassModel().getField("id").setStoreNulls(true);
-        codec.getClassModel().getField("map").setStoreNulls(true);
-        codec.getClassModel().getField("list").setStoreNulls(true);
-        codec.getClassModel().getField("mixed").setStoreNulls(true);
+        PojoCodecProvider provider = PojoCodecProvider.builder(ConventionOptions.builder()
+                                                                   .storeNullFields(true)
+                                                              .build())
+                                                      .register(ContainerTypes.class, BaseGenericType.class)
+                                                      .build();
+        CodecRegistry registry = fromProviders(provider, new ValueCodecProvider());
+
+        codec = (PojoCodec<ContainerTypes>) registry
+            .get(ContainerTypes.class);
+
         document = new BsonDocument();
         codec.encode(new BsonDocumentWriter(document), containerTypes, EncoderContext.builder().build());
-        assertEquals(4, document.size());
+        assertEquals(14, document.size());
 
         ContainerTypes decoded = codec.decode(new BsonDocumentReader(document), DecoderContext.builder().build());
         assertNull(decoded.getMixed());
         assertNull(decoded.getMap());
         assertNull(decoded.getList());
-
-        PojoCodec<Complex> complexCodec = (PojoCodec<Complex>) codecRegistry.get(Complex.class);
-        complexCodec.getClassModel().getField("stringChild").setStoreNulls(true);
-
-        document = new BsonDocument();
-        complexCodec.encode(new BsonDocumentWriter(document), new Complex(), EncoderContext.builder().build());
-        assertEquals(2, document.size());
-        complexCodec.decode(new BsonDocumentReader(document), DecoderContext.builder().build());
     }
 
     @Test(expected = CodecConfigurationException.class)
@@ -365,14 +378,12 @@ public class PojoCodecTest {
     }
 
     private CodecRegistry getCodecRegistry(final Class<?> clazz, final Class<?>... classes) {
-        List<Class<?>> list = new ArrayList<Class<?>>(asList(classes));
-        list.add(clazz);
         codecProvider = PojoCodecProvider.builder()
                                          .register(clazz)
                                          .register(classes)
                                          .build();
 
-        return CodecRegistries.fromProviders(codecProvider,
+        return fromProviders(codecProvider,
                                              new ValueCodecProvider());
     }
 

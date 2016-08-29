@@ -15,17 +15,32 @@
  */
 package org.bson.codecs.pojo;
 
+import com.fasterxml.classmate.AnnotationConfiguration.StdConfiguration;
+import com.fasterxml.classmate.AnnotationInclusion;
+import com.fasterxml.classmate.MemberResolver;
 import com.fasterxml.classmate.ResolvedType;
+import com.fasterxml.classmate.ResolvedTypeWithMembers;
+import com.fasterxml.classmate.TypeBindings;
+import com.fasterxml.classmate.TypeResolver;
+import com.fasterxml.classmate.members.ResolvedField;
+import org.bson.codecs.IdGenerator;
+import org.bson.codecs.ObjectIdGenerator;
 import org.bson.codecs.configuration.CodecConfigurationException;
-import org.bson.codecs.configuration.CodecRegistry;
+import org.bson.codecs.pojo.FieldModel.Builder;
+import org.bson.codecs.pojo.conventions.Convention;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
@@ -38,41 +53,44 @@ import static java.util.Arrays.asList;
 public final class ClassModel {
     private final Map<String, FieldModel> fieldMap = new HashMap<String, FieldModel>();
     private final List<FieldModel> fields = new ArrayList<FieldModel>();
-    private  Class<?> type;
-    private boolean generic;
-    private FieldModel idField;
-    private String collectionName;
-    private Boolean useDiscriminator = true;
-    private String discriminator;
-    private Constructor<?> constructor;
+    private final Class<?> type;
+    private final boolean generic;
+    private final FieldModel idField;
+    private final String collectionName;
+    private final Boolean useDiscriminator;
+    private final String discriminator;
+    private final Constructor<?> constructor;
+    private final IdGenerator idGenerator;
 
     /**
      * Construct a ClassModel for the given Class.
      *
-     * @param registry the registry to use for deferred lookups for codecs for the fields.
      * @param aClass   the Class to model
      */
-    ClassModel(final CodecRegistry registry, final Class<?> aClass) {
-/*
-        TypeResolver resolver = new TypeResolver();
+    private ClassModel(final Class<?> aClass, final boolean generic, final String collectionName,
+                       final Boolean useDiscriminator, final String discriminator, final IdGenerator idGenerator,
+                       final FieldModel idField, final List<FieldModel> fields) {
+        this.generic = generic;
+        this.idField = idField;
+        this.collectionName = collectionName;
+        this.useDiscriminator = useDiscriminator;
+        this.discriminator = discriminator;
+        this.idGenerator = idGenerator;
         this.type = aClass;
 
-        MemberResolver memberResolver = new MemberResolver(resolver);
-        ResolvedType resolved = resolver.resolve(getType());
-        ResolvedTypeWithMembers type =
-            memberResolver.resolve(resolved, new StdConfiguration(AnnotationInclusion.INCLUDE_AND_INHERIT_IF_INHERITED), null);
-
-        setCollectionName(getName());
-        setDiscriminator(getType().getName());
-        setUseDiscriminator(true);
-
-        for (final ResolvedField field : type.getMemberFields()) {
-            addField(new FieldModel(this, registry, field));
+        try {
+            constructor = getType().getConstructor();
+            constructor.setAccessible(true);
+        } catch (final NoSuchMethodException e) {
+            throw new CodecConfigurationException("No zero arugment constructor was found for the type " + getType().getName());
         }
-*/
+
+        for (FieldModel field : fields) {
+            addField(field);
+        }
     }
 
-    /**
+    /*
      * Copy constructor that uses a {@link FieldModel} to specialize any unbound type parameters.
      *
      * @param original    the template to copy
@@ -80,21 +98,30 @@ public final class ClassModel {
      */
     ClassModel(final ClassModel original, final FieldModel sourceField) {
         type = original.getType();
-        useDiscriminator = original.useDiscriminator != null ? original.useDiscriminator : useDiscriminator;
-        collectionName = original.collectionName != null ? original.collectionName : collectionName;
-        discriminator = original.discriminator != null ? original.discriminator : discriminator;
+        generic = original.generic;
+        idGenerator = original.idGenerator;
+        collectionName = original.collectionName != null ? original.collectionName : getName();
+        discriminator = original.discriminator != null ? original.discriminator : getType().getName();
         constructor = original.constructor;
         idField = original.idField;
         for (FieldModel fieldModel : original.fields) {
-            ResolvedType boundType = sourceField.getBoundType(fieldModel.getTypeName());
+            Class<?> boundType = sourceField.getBoundType(fieldModel.getTypeName());
             if (boundType != null) {
-                fieldModel = new FieldModel(this, fieldModel, boundType.getErasedType());
+                fieldModel = new FieldModel(fieldModel, boundType);
             }
             addField(fieldModel);
         }
-        if (sourceField.isUseDiscriminator() != null) {
-            setUseDiscriminator(sourceField.isUseDiscriminator());
-        }
+
+        useDiscriminator = sourceField.isUseDiscriminator();
+    }
+    /**
+     * Creates a Builder to build and configure a ClassModel
+     *
+     * @param type     the type to model
+     * @return the builder
+     */
+    public static Builder builder(final Class<?> type) {
+        return new Builder(type);
     }
 
     /**
@@ -117,19 +144,16 @@ public final class ClassModel {
         return getType().getAnnotations();
     }
 
+    /**
+     * @return the generator to use when creating IDs automatically
+     */
+    public IdGenerator getIdGenerator() {
+        return idGenerator;
+    }
+
     void addField(final FieldModel model) {
         fieldMap.put(model.getName(), model);
         fields.add(model);
-        if (model.getTypeName() != null) {
-            generic = true;
-        }
-        if (idField == null
-            && ("id".equals(model.getFieldName())
-            || "_id".equals(model.getFieldName())
-            || "_id".equals(model.getName()))) {
-            idField = model;
-            idField.setIdField(true);
-        }
     }
 
     /**
@@ -149,15 +173,6 @@ public final class ClassModel {
     }
 
     /**
-     * Suggests a new value for the collection name.
-     *
-     * @param collectionName the new collection name to suggest
-     */
-    public void setCollectionName(final String collectionName) {
-        this.collectionName = collectionName;
-    }
-
-    /**
      * Gets the value for the discriminator.
      *
      * @return the discriminator value
@@ -167,22 +182,13 @@ public final class ClassModel {
     }
 
     /**
-     * Sets a new value for the discriminator.
-     *
-     * @param discriminator the new discriminator value to suggest
-     */
-    public void setDiscriminator(final String discriminator) {
-        this.discriminator = discriminator;
-    }
-
-    /**
      * Retrieves a specific field from the model.
      *
      * @param name the field's name
      * @return the field
      */
     public FieldModel getField(final String name) {
-        return fieldMap.get(name);
+        return idField != null && name.equals(idField.getName()) ? idField : fieldMap.get(name);
     }
 
     /**
@@ -201,19 +207,6 @@ public final class ClassModel {
      */
     public FieldModel getIdField() {
         return idField;
-    }
-
-    /**
-     * Sets the FieldModel by name for the ID of this ClassModel
-     *
-     * @param name the name of the field to use as the ID
-     */
-    public void setIdField(final String name) {
-        FieldModel fieldModel = fieldMap.get(name);
-        if (fieldModel == null) {
-            throw new CodecConfigurationException(format("No such field '%s' for type %s", name, getType().getName()));
-        }
-        this.idField = fieldModel;
     }
 
     /**
@@ -238,7 +231,7 @@ public final class ClassModel {
     /**
      * Determines if this ClassModel has any unbound type parameters.
      *
-     * @return true if for any named type paramater, the bound type is {@link java.lang.Object}
+     * @return true if for any named type paramater, the bound type is {@link Object}
      */
     public boolean isGeneric() {
         return generic;
@@ -253,29 +246,8 @@ public final class ClassModel {
         return useDiscriminator;
     }
 
-    /**
-     * If true, the discriminator for this type is included when serializing this type.
-     *
-     * @param useDiscriminator true if the discriminator should be included
-     */
-    public void setUseDiscriminator(final Boolean useDiscriminator) {
-        this.useDiscriminator = useDiscriminator;
-    }
-
     Constructor<?> getConstructor() {
-        if (constructor == null) {
-            try {
-                constructor = getType().getConstructor();
-                constructor.setAccessible(true);
-            } catch (final NoSuchMethodException e) {
-                throw new CodecConfigurationException("No zero arugment constructor was found for the type " + getType().getName());
-            }
-        }
         return constructor;
-    }
-
-    Map<String, FieldModel> getFieldMap() {
-        return fieldMap;
     }
 
     @Override
@@ -283,71 +255,307 @@ public final class ClassModel {
         return format("ClassModel<%s>", getName());
     }
 
-    @SuppressWarnings("CheckStyle")
-    public static class Builder {
-        private Builder parent;
+    /**
+     * This class provides a Builder for configuring mapping data about a type.
+     */
+    public static final class Builder {
+//        private Builder parent;
         private final Class<?> type;
-        private final List<FieldModel.Builder> fields = new ArrayList<FieldModel.Builder>();
+        private final Map<String, FieldModel.Builder> fields = new LinkedHashMap<String, FieldModel.Builder>();
+        private final List<Annotation> annotations;
+
         private String collection;
-        private Boolean useDiscriminator = true;
+        private boolean useDiscriminator = true;
         private String discriminator;
-        private List<Annotation> annotations;
+        private IdGenerator idGenerator = new ObjectIdGenerator();
+        private String idField;
 
-        public static Builder builder(final Class<?> type) {
-            return new Builder(type);
-        }
-
-        Builder(final Builder parent, final Class<?> type) {
-            this(type);
+/*
+        private Builder(final Builder parent, final Class<?> type) {
+            this(parent.registry, type);
             this.parent = parent;
         }
+*/
 
-        Builder(final Class<?> type) {
+        private Builder(final Class<?> type) {
             this.type = type;
             collection = type.getSimpleName();
             annotations = asList(type.getAnnotations());
         }
 
+        static List<Class<?>> extract(final ResolvedType type) {
+            List<Class<?>> classes = new ArrayList<Class<?>>();
+            Class<?> erasedType = type.getErasedType();
+            if (Collection.class.isAssignableFrom(erasedType)) {
+                ResolvedType collectionType = type.getTypeParameters().get(0);
+                Class<?> containerClass;
+                if (Set.class.equals(erasedType)) {
+                    containerClass = HashSet.class;
+                } else if (List.class.equals(erasedType) || Collection.class.equals(erasedType)) {
+                    containerClass = ArrayList.class;
+                } else {
+                    containerClass = erasedType;
+                }
+                classes.add(containerClass);
+                classes.addAll(extract(collectionType));
+            } else if (Map.class.isAssignableFrom(erasedType)) {
+                List<ResolvedType> types = type.getTypeParameters();
+                ResolvedType keyType = types.get(0);
+                ResolvedType valueType = types.get(1);
+                if (!keyType.getErasedType().equals(String.class)) {
+                    throw new CodecConfigurationException(format("Map key types must be Strings.  Found %s instead.",
+                                                                 keyType.getErasedType()));
+                }
+                Class<?> containerClass;
+                if (Map.class.equals(erasedType)) {
+                    containerClass = HashMap.class;
+                } else {
+                    containerClass = erasedType;
+                }
+                classes.add(containerClass);
+                classes.addAll(extract(valueType));
+            } else {
+                classes.add(type.getErasedType());
+            }
+
+            return classes;
+        }
+
+        /**
+         * Returns the builder for the named FieldModel
+         *
+         * @param name the field to lookup
+         * @return the builder
+         */
+        public FieldModel.Builder field(final String name) {
+            FieldModel.Builder builder = fields.get(name);
+            if (builder == null) {
+                for (FieldModel.Builder field : fields.values()) {
+                    if (field.getDocumentFieldName().equals(name)) {
+                        return field;
+                    }
+                }
+            }
+            return builder;
+        }
+
+        /**
+         * Gets a field by the given name.
+         *
+         * @param name the name of the field to find
+         * @return the field
+         */
+        public FieldModel.Builder getField(final String name) {
+            return fields.get(name);
+        }
+
+        FieldModel.Builder removeField(final String name) {
+            return fields.remove(name);
+        }
+        FieldModel.Builder addField(final String name, final FieldModel.Builder field) {
+            return fields.put(name, field);
+        }
+
+        /**
+         * @return the name of the type being modeled
+         */
         public String getTypeName() {
             return type.getSimpleName();
         }
 
+        /**
+         * Adds a new field
+         *
+         * @param name the name of the new field
+         * @return the builder to configure the field being modeled
+         */
         public FieldModel.Builder addField(final String name) {
-            FieldModel.Builder field = new FieldModel.Builder(this, type, name);
-            fields.add(field);
-            return field;
+            return FieldModel.builder(this, name);
         }
 
+        /**
+         * Adds a new field
+         *
+         * @param field the new field
+         * @return the builder to configure the field being modeled
+         */
+        public FieldModel.Builder addField(final Field field) {
+            return FieldModel.builder(this, field);
+        }
+
+        /**
+         * @return the annotations on the modeled type
+         */
         public List<Annotation> getAnnotations() {
             return annotations;
         }
 
+        /**
+         * @return the fields on the modeled type
+         */
         public List<FieldModel.Builder> getFields() {
-            return fields;
+            return new ArrayList<FieldModel.Builder>(fields.values());
         }
 
+        /**
+         * @return the type
+         */
         public Class<?> getType() {
             return type;
         }
 
+        /**
+         * Sets the collection to be used when storing instances of the modeled type
+         *
+         * @param value the collection name
+         * @return this
+         */
         public Builder collection(final String value) {
             this.collection = value;
             return this;
         }
 
+        /**
+         * Sets the discriminator to be used when storing instances of the modeled type
+         *
+         * @param value the discriminator value
+         * @return this
+         */
         public Builder discriminator(final String value) {
-            return this;
-        }
-        public Builder useDiscriminator(final Boolean value) {
+            discriminator = value;
             return this;
         }
 
+        /**
+         * Sets the discriminator to be used when storing instances of the modeled type
+         *
+         * @param value the discriminator value
+         * @return this
+         */
+        public Builder useDiscriminator(final Boolean value) {
+            useDiscriminator = value;
+            return this;
+        }
+
+/*
         public Builder subclass(final Class<?> type) {
             return new Builder(this, type);
         }
+*/
 
+        /**
+         * Designates a field as the ID field for this type.  If another field is currently marked as the ID field, that setting is
+         * cleared in favor of the named field.
+         *
+         * @param name the name of the ID field
+         * @return this
+         * @throws CodecConfigurationException if the named field can not be found
+         */
+        public Builder idField(final String name) {
+            FieldModel.Builder field = fields.get(name);
+            if (field != null) {
+                idField = name;
+            } else {
+                throw new CodecConfigurationException(format("The named field '%s' can not be found on '%s'.", name, this.type.getName()));
+            }
+            return this;
+        }
+
+        /**
+         * Specifies the generator to use when generating new IDs automatically when saving to the database.
+         *
+         * @param generator the generator to use
+         * @return this
+         */
+        public Builder idGenerator(final IdGenerator generator) {
+            idGenerator = generator;
+            return this;
+        }
+        /**
+         * This method automatically discovers all the necessary information for mapping this type and its fields.
+         *
+         * @return this
+         */
+        public Builder map() {
+            TypeResolver resolver = new TypeResolver();
+
+            MemberResolver memberResolver = new MemberResolver(resolver);
+            ResolvedType resolved = resolver.resolve(type);
+            ResolvedTypeWithMembers resolvedType =
+                memberResolver.resolve(resolved, new StdConfiguration(AnnotationInclusion.INCLUDE_AND_INHERIT_IF_INHERITED), null);
+
+            collection(type.getSimpleName());
+            discriminator(type.getName());
+            useDiscriminator(true);
+
+            for (final ResolvedField field : resolvedType.getMemberFields()) {
+                FieldModel.Builder builder = map(field);
+                fields.put(builder.getFieldName(), builder);
+            }
+
+            return this;
+        }
+
+        private FieldModel.Builder map(final ResolvedField resolvedField) {
+            Field rawField = resolvedField.getRawMember();
+            Class<?> erasedType = resolvedField.getType().getErasedType();
+
+            FieldModel.Builder fieldBuilder =
+                addField(rawField)
+                    .type(erasedType, extract(resolvedField.getType()))
+                    .typeName(erasedType.equals(Object.class) ? rawField.getGenericType().toString() : null)
+                    .annotations(resolvedField.getAnnotations().asArray());
+
+            TypeBindings bindings = resolvedField.getType().getTypeBindings();
+
+            for (int index = 0; index < bindings.size(); index++) {
+                fieldBuilder.bindType(bindings.getBoundName(index), bindings.getBoundType(index).getErasedType());
+            }
+
+            return fieldBuilder;
+        }
+
+        /**
+         * Applies the list of Conventions to this ClassModel
+         *
+         * @param conventions the conventions to apply
+         * @return this
+         */
+        public Builder apply(final List<Convention> conventions) {
+            if (conventions != null) {
+                for (Convention convention : conventions) {
+                    convention.apply(this);
+                }
+            }
+            return this;
+        }
+
+        /**
+         * Creates a new ClassModel instance based on the mapping data provided.
+         *
+         * @return the new instance
+         */
         public ClassModel build() {
-            throw new UnsupportedOperationException();
+            boolean generic = false;
+            List<FieldModel> fieldModels = new ArrayList<FieldModel>();
+            FieldModel idFieldModel = null;
+            for (FieldModel.Builder field : fields.values()) {
+                if (field.isIncluded()) {
+                    FieldModel model = field.build();
+                    generic |= model.getTypeName() != null;
+                    if (model.getFieldName().equals(idField)) {
+                        idFieldModel = model;
+                    } else {
+                        fieldModels.add(model);
+                    }
+                }
+            }
+            return new ClassModel(type, generic, collection, useDiscriminator, discriminator, idGenerator, idFieldModel, fieldModels);
+        }
+
+        @Override
+        public String toString() {
+            return format("ClassModel.Builder{type=%s, collection=%s}", type, collection);
         }
     }
 }

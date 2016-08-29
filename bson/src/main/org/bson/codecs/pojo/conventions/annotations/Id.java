@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2016 MongoDB, Inc.
+ * Copyright 2008-2016 MongoDB, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,24 @@
  * limitations under the License.
  */
 
-package org.bson.codecs.pojo.entities;
+package org.bson.codecs.pojo.conventions.annotations;
 
-import org.bson.types.ObjectId;
+import org.bson.codecs.pojo.ClassModel;
 
-public class BadField {
-    private ObjectId id;
-    private Object field;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+/**
+ * Marks a field as the ID for a {@link ClassModel}
+ *
+ * @since 3.4
+ */
+@Documented
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+public @interface Id {
+
 }

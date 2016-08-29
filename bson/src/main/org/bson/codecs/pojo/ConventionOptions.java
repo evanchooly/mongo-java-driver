@@ -16,110 +16,165 @@
 
 package org.bson.codecs.pojo;
 
+import org.bson.codecs.pojo.conventions.AnnotationConvention;
 import org.bson.codecs.pojo.conventions.Convention;
+import org.bson.codecs.pojo.conventions.DefaultAnnotationConvention;
+import org.bson.codecs.pojo.conventions.FieldSelectionConvention;
+import org.bson.codecs.pojo.conventions.FieldStorageConvention;
 import org.bson.codecs.pojo.conventions.naming.ClassNameCollectionNamingConvention;
 import org.bson.codecs.pojo.conventions.naming.CollectionNamingConvention;
 import org.bson.codecs.pojo.conventions.naming.JavaFieldNamingConvention;
 import org.bson.codecs.pojo.conventions.naming.PropertyNamingConvention;
 
+import java.util.ArrayList;
+import java.util.List;
+
+@SuppressWarnings("CheckStyle")
 public class ConventionOptions {
-    public enum CollectionNaming {
-        CLASS_NAME(ClassNameCollectionNamingConvention.class),
-        CUSTOM(null);
+    public static final ConventionOptions DEFAULT_CONVENTIONS = builder().build();
 
-        private final Class<? extends CollectionNamingConvention> conventionClass;
+    private final boolean useNamedIdField;
+    private final boolean storeEmptyFields;
+    private final boolean storeNullFields;
+    private final boolean storeFinalFields;
+    private final boolean storeTransientFields;
+    private final boolean storeStaticFields;
+    private final CollectionNamingConvention collectionNamingConvention;
+    private final PropertyNamingConvention propertyNamingConvention;
+    private final AnnotationConvention annotationConvention;
 
-        CollectionNaming(final Class<? extends CollectionNamingConvention> conventionClass) {
-            this.conventionClass = conventionClass;
-        }
-
-    }
-    public enum PropertyNaming {
-        FIELD_NAME(JavaFieldNamingConvention.class),
-        CUSTOM(null);
-
-        private final Class<? extends PropertyNamingConvention> conventionClass;
-
-        PropertyNaming(final Class<? extends PropertyNamingConvention> conventionClass) {
-            this.conventionClass = conventionClass;
-        }
-
-    }
-    private boolean storeEmptyFields;
-
-    private boolean storeNullFields;
-    private CollectionNaming collectionNaming;
-    private PropertyNaming propertyNaming;
-    private Class<? extends CollectionNamingConvention> collectionNamingConvention;
-
-    private Class<? extends PropertyNamingConvention> propertyNamingConvention;
-    public ConventionOptions storeEmptyFields(final boolean store) {
-        storeEmptyFields = store;
-        return this;
+    private ConventionOptions(final boolean storeEmptyFields, final boolean storeNullFields, final boolean storeFinalFields,
+                              final boolean storeTransientFields, final boolean storeStaticFields, final boolean useNamedIdField,
+                              final CollectionNamingConvention collectionNamingConvention,
+                              final PropertyNamingConvention propertyNamingConvention, final AnnotationConvention annotationConvention) {
+        this.storeEmptyFields = storeEmptyFields;
+        this.storeNullFields = storeNullFields;
+        this.storeFinalFields = storeFinalFields;
+        this.storeTransientFields = storeTransientFields;
+        this.storeStaticFields = storeStaticFields;
+        this.useNamedIdField = useNamedIdField;
+        this.collectionNamingConvention = collectionNamingConvention;
+        this.propertyNamingConvention = propertyNamingConvention;
+        this.annotationConvention = annotationConvention;
     }
 
-    public ConventionOptions storeNullFields(final boolean store) {
-        storeNullFields = store;
-        return this;
+    public Convention getCollectionNamingConvention() {
+        return collectionNamingConvention;
     }
 
-    public ConventionOptions collectionNamingStrategy(final CollectionNaming strategy) {
-        if (strategy == CollectionNaming.CUSTOM) {
-            throw new IllegalArgumentException("An implementation must be given with CUSTOM");
-        }
-        return collectionNamingStrategy(strategy, strategy.conventionClass);
-    }
-
-    public ConventionOptions collectionNamingStrategy(final CollectionNaming strategy,
-                                                      final Class<? extends CollectionNamingConvention> impl) {
-        this.collectionNaming = strategy;
-        collectionNamingConvention = impl;
-        return this;
-    }
-
-    public ConventionOptions propertyNamingStrategy(final PropertyNaming strategy) {
-        if (strategy == PropertyNaming.CUSTOM) {
-            throw new IllegalArgumentException("An implementation must be given with CUSTOM");
-        }
-        return propertyNamingStrategy(strategy, strategy.conventionClass);
-    }
-
-    public ConventionOptions propertyNamingStrategy(final PropertyNaming strategy, final Class<? extends PropertyNamingConvention> impl) {
-        this.propertyNaming = strategy;
-        propertyNamingConvention = impl;
-        return this;
+    public Convention getPropertyNamingConvention() {
+        return propertyNamingConvention;
     }
 
     public boolean isStoreEmptyFields() {
         return storeEmptyFields;
     }
 
+    public boolean isStoreFinalFields() {
+        return storeFinalFields;
+    }
 
     public boolean isStoreNullFields() {
         return storeNullFields;
     }
 
-    public CollectionNaming getCollectionNaming() {
-        return collectionNaming;
+    public boolean isStoreStaticFields() {
+        return storeStaticFields;
     }
 
-    public PropertyNaming getPropertyNaming() {
-        return propertyNaming;
+    public boolean isStoreTransientFields() {
+        return storeTransientFields;
     }
 
-    public Convention getCollectionNamingConvention() {
-        try {
-            return collectionNamingConvention.newInstance();
-        } catch (Exception e) {
-            throw new MappingException(e);
+    public boolean isUseNamedIdField() {
+        return useNamedIdField;
+    }
+
+    protected List<Convention> getConventions() {
+        List<Convention> conventions = new ArrayList<Convention>();
+
+        conventions.add(new FieldSelectionConvention()
+                            .storeFinal(storeFinalFields)
+                            .storeStatic(storeStaticFields)
+                            .storeTransient(storeTransientFields));
+
+        conventions.add(new FieldStorageConvention()
+                            .storeNulls(storeNullFields)
+                            .storeEmpties(storeEmptyFields)
+                            .useNamedIdField(useNamedIdField));
+
+        conventions.add(collectionNamingConvention);
+        conventions.add(propertyNamingConvention);
+        conventions.add(annotationConvention);
+        return conventions;
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private boolean useNamedIdField = true;
+        private boolean storeEmptyFields;
+        private boolean storeNullFields;
+        private boolean storeFinalFields;
+        private boolean storeTransientFields;
+        private boolean storeStaticFields;
+        private CollectionNamingConvention collectionNamingConvention = new ClassNameCollectionNamingConvention();
+        private PropertyNamingConvention propertyNamingConvention = new JavaFieldNamingConvention();
+        private AnnotationConvention annotationConvention = new DefaultAnnotationConvention();
+
+        private Builder() {}
+
+        public ConventionOptions build() {
+            return new ConventionOptions(storeEmptyFields, storeNullFields, storeFinalFields, storeTransientFields, storeStaticFields,
+                                         useNamedIdField, collectionNamingConvention, propertyNamingConvention, annotationConvention);
         }
-    }
 
-    public Convention getPropertyNamingConvention() {
-        try {
-            return propertyNamingConvention.newInstance();
-        } catch (Exception e) {
-            throw new MappingException(e);
+        public Builder annotationConvention(final AnnotationConvention convention) {
+            annotationConvention = convention;
+            return this;
         }
+
+        public Builder collectionNamingConvention(final CollectionNamingConvention impl) {
+            collectionNamingConvention = impl;
+            return this;
+        }
+
+        public Builder propertyNamingConvention(final PropertyNamingConvention impl) {
+            propertyNamingConvention = impl;
+            return this;
+        }
+
+        public Builder storeEmptyFields(final boolean store) {
+            storeEmptyFields = store;
+            return this;
+        }
+
+        public Builder storeFinalFields(final boolean store) {
+            storeFinalFields = store;
+            return this;
+        }
+
+        public Builder storeNullFields(final boolean store) {
+            storeNullFields = store;
+            return this;
+        }
+
+        public Builder storeStaticFields(final boolean store) {
+            storeStaticFields = store;
+            return this;
+        }
+
+        public Builder storeTransientFields(final boolean store) {
+            storeTransientFields = store;
+            return this;
+        }
+
+        public Builder useNamedIdField(final boolean store) {
+            useNamedIdField = store;
+            return this;
+        }
+
     }
 }
