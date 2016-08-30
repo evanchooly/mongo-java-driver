@@ -18,6 +18,7 @@ package org.bson.codecs.pojo;
 
 import org.bson.codecs.Codec;
 import org.bson.codecs.ValueCodecProvider;
+import org.bson.codecs.configuration.CodecConfigurationException;
 import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.codecs.pojo.ClassModel.Builder;
@@ -26,6 +27,7 @@ import org.bson.codecs.pojo.entities.ZipCode;
 import org.junit.Test;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class ClassModelBuilderTest {
     @Test
@@ -62,5 +64,41 @@ public class ClassModelBuilderTest {
         Codec<Address> addressCodec = registry.get(Address.class);
         assertTrue(addressCodec instanceof PojoCodec);
         assertTrue(addressCodec.getEncoderClass().equals(Address.class));
+    }
+
+    @Test
+    public void nameCollisions() throws NoSuchFieldException {
+        Builder address = ClassModel.builder(Address.class);
+
+        FieldModel.Builder city = address.addField(Address.class.getDeclaredField("city"))
+                                         .type(String.class);
+        FieldModel.Builder state = address.addField(Address.class.getDeclaredField("state"))
+                                          .type(String.class);
+
+        try {
+            city.documentFieldName("state");
+            fail("The name 'state' should conflict with the 'state' field");
+        } catch (CodecConfigurationException e) {
+            // ok
+        }
+        city.documentFieldName("c");
+
+        try {
+            state.documentFieldName("c");
+            fail("The name 'city' should conflict with the 'city' field");
+        } catch (CodecConfigurationException e) {
+            // ok
+        }
+
+        try {
+            state.documentFieldName("city");
+            fail("The name 'city' should conflict with the 'city' field");
+        } catch (CodecConfigurationException e) {
+            // ok
+        }
+
+        city.documentFieldName("c");
+        city.documentFieldName("city");
+        city.documentFieldName("city");  // should be idempotent
     }
 }

@@ -321,6 +321,40 @@ public final class ClassModel {
             return classes;
         }
 
+        FieldModel.Builder removeField(final String name) {
+            return fields.remove(name);
+        }
+
+        /**
+         * Adds a new field
+         *
+         * @param field the new field
+         * @return the builder to configure the field being modeled
+         */
+        public FieldModel.Builder addField(final Field field) {
+            return FieldModel.builder(this, field);
+        }
+
+        /**
+         * Adds a new field
+         *
+         * @param name the name of the new field
+         * @return the builder to configure the field being modeled
+         */
+        public FieldModel.Builder addField(final String name) {
+            return FieldModel.builder(this, name);
+        }
+
+        /**
+         * Gets a field by the given name.
+         *
+         * @param name the name of the field to find
+         * @return the field
+         */
+        FieldModel.Builder getField(final String name) {
+            return fields.get(name);
+        }
+
         /**
          * Returns the builder for the named FieldModel
          *
@@ -340,18 +374,12 @@ public final class ClassModel {
         }
 
         /**
-         * Gets a field by the given name.
-         *
-         * @param name the name of the field to find
-         * @return the field
+         * @return the fields on the modeled type
          */
-        public FieldModel.Builder getField(final String name) {
-            return fields.get(name);
+        public List<FieldModel.Builder> getFields() {
+            return new ArrayList<FieldModel.Builder>(fields.values());
         }
 
-        FieldModel.Builder removeField(final String name) {
-            return fields.remove(name);
-        }
         FieldModel.Builder addField(final String name, final FieldModel.Builder field) {
             return fields.put(name, field);
         }
@@ -364,37 +392,10 @@ public final class ClassModel {
         }
 
         /**
-         * Adds a new field
-         *
-         * @param name the name of the new field
-         * @return the builder to configure the field being modeled
-         */
-        public FieldModel.Builder addField(final String name) {
-            return FieldModel.builder(this, name);
-        }
-
-        /**
-         * Adds a new field
-         *
-         * @param field the new field
-         * @return the builder to configure the field being modeled
-         */
-        public FieldModel.Builder addField(final Field field) {
-            return FieldModel.builder(this, field);
-        }
-
-        /**
          * @return the annotations on the modeled type
          */
         public List<Annotation> getAnnotations() {
             return annotations;
-        }
-
-        /**
-         * @return the fields on the modeled type
-         */
-        public List<FieldModel.Builder> getFields() {
-            return new ArrayList<FieldModel.Builder>(fields.values());
         }
 
         /**

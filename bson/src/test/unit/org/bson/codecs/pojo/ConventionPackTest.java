@@ -85,7 +85,7 @@ public class ConventionPackTest {
     public void testCustomConventions() {
         PojoCodecProvider codecProvider = PojoCodecProvider
             .builder(ConventionOptions.builder()
-                    .propertyNamingConvention(new SnakeCasePropertyNamingConvention())
+                    .propertyNaming(new SnakeCasePropertyNamingConvention())
                     .build())
             .register(MappedEntity.class)
             .build();

@@ -312,7 +312,7 @@ public final class FieldModel {
          * @return this
          */
         public Builder documentFieldName(final String name) {
-            if (!name.equals(fieldName) && parent.getField(name) != null) {
+            if (!name.equals(fieldName) && !name.equals(documentFieldName) && parent.getField(name) != null) {
                 throw new CodecConfigurationException(format("A naming collision has been found on %s between '%s' and '%s'",
                                                              parent.getType().getName(), fieldName, parent.getField(name).fieldName));
             }

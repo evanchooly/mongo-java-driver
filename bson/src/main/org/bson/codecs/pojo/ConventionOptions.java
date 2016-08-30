@@ -131,17 +131,17 @@ public class ConventionOptions {
                                          useNamedIdField, collectionNamingConvention, propertyNamingConvention, annotationConvention);
         }
 
-        public Builder annotationConvention(final AnnotationConvention convention) {
+        public Builder annotations(final AnnotationConvention convention) {
             annotationConvention = convention;
             return this;
         }
 
-        public Builder collectionNamingConvention(final CollectionNamingConvention impl) {
+        public Builder collectionNaming(final CollectionNamingConvention impl) {
             collectionNamingConvention = impl;
             return this;
         }
 
-        public Builder propertyNamingConvention(final PropertyNamingConvention impl) {
+        public Builder propertyNaming(final PropertyNamingConvention impl) {
             propertyNamingConvention = impl;
             return this;
         }
