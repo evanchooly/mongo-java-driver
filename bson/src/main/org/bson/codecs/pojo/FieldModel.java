@@ -184,6 +184,9 @@ public final class FieldModel {
         return typeName;
     }
 
+    /**
+     * @return the parameterized types on the model's underlying type
+     */
     public List<Class<?>> getTypes() {
         return types;
     }
@@ -357,6 +360,7 @@ public final class FieldModel {
             this.included = include;
             return this;
         }
+
         public boolean isIncluded() {
             return this.included;
         }
