@@ -19,6 +19,6 @@ package org.bson.codecs.pojo;
 class DefaultShouldSerialize implements ShouldSerialize {
     @Override
     public boolean evaluate(final FieldModel model, final Object value) {
-        return value != null || model.isStoreNulls() && !model.isIdField();
+        return value != null || model.isStoreNulls();
     }
 }

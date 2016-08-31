@@ -47,8 +47,4 @@ public abstract class AnnotationConvention implements Convention {
 
     protected abstract void processFieldAnnotation(final ClassModel.Builder classModel, final Builder fieldModel,
                                                    final Annotation annotation);
-
-    private String extractCollectionName(final ClassModel.Builder model, final Entity entity) {
-        return "".equals(entity.collection()) ? model.getType().getSimpleName() : entity.collection();
-    }
 }

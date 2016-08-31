@@ -37,7 +37,7 @@ public abstract class FieldConvention implements Convention {
     /**
      * Apples the logic of the convention to the given FieldModel
      *
-     * @param model
+     * @param model the parent ClassModel.Builder
      * @param fieldModel the model to update
      */
     protected abstract void applyToField(final ClassModel.Builder model, final Builder fieldModel);
