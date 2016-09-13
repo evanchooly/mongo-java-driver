@@ -34,6 +34,7 @@ import static com.mongodb.client.model.Accumulators.push
 import static com.mongodb.client.model.Accumulators.stdDevPop
 import static com.mongodb.client.model.Accumulators.stdDevSamp
 import static com.mongodb.client.model.Accumulators.sum
+import static com.mongodb.client.model.Aggregates.addFields
 import static com.mongodb.client.model.Aggregates.bucket
 import static com.mongodb.client.model.Aggregates.bucketAuto
 import static com.mongodb.client.model.Aggregates.count
@@ -536,6 +537,72 @@ class AggregatesFunctionalSpecification extends OperationFunctionalSpecification
         results == [Document.parse('{_id: 1, count: 2}'),
                     Document.parse('{_id: 0, count: 1}'),
                     Document.parse('{_id: 2, count: 1}')]
+
+        cleanup:
+        helper?.drop()
+    }
+
+    @IgnoreIf({ !serverVersionAtLeast(asList(3, 3, 9)) })
+    def '$addFields'() {
+        given:
+        def helper = getCollectionHelper()
+
+        when:
+        helper.drop()
+        helper.insertDocuments(Document.parse('{_id: 0, a: 1}'))
+        def results = helper.aggregate([addFields(new Field('newField', 'hello'))])
+
+        then:
+        results == [Document.parse('{_id: 0, a: 1, newField: "hello"}')]
+
+        when:
+        helper.drop()
+        helper.insertDocuments(Document.parse('{_id: 0, a: 1}'))
+        results = helper.aggregate([addFields(new Field('b', '$a'))])
+
+        then:
+        results == [Document.parse('{_id: 0, a: 1, b: 1}')]
+
+        when:
+        helper.drop()
+        helper.insertDocuments(Document.parse('{_id: 0, a: 1}'))
+        results = helper.aggregate([addFields(new Field('this', '$$CURRENT'))])
+
+        then:
+        results == [Document.parse('{_id: 0, a: 1, this: {_id: 0, a: 1}}')]
+
+        when:
+        helper.drop()
+        helper.insertDocuments(Document.parse('{_id: 0, a: 1}'))
+        results = helper.aggregate([addFields(new Field('myNewField',
+                                                        new Document('c', 3).append('d', 4)))])
+
+        then:
+        results == [Document.parse('{_id: 0, a: 1, myNewField: {c: 3, d: 4}}')]
+
+        when:
+        helper.drop()
+        helper.insertDocuments(Document.parse('{_id: 0, a: 1}'))
+        results = helper.aggregate([addFields(new Field('alt3', new Document('$lt', asList('$a', 3))))])
+
+        then:
+        results == [Document.parse('{_id: 0, a: 1, alt3: true}')]
+
+        when:
+        helper.drop()
+        helper.insertDocuments(Document.parse('{_id: 0, a: 1}'))
+        results = helper.aggregate([addFields(new Field('b', 3), new Field('c', 5))])
+
+        then:
+        results == [Document.parse('{_id: 0, a: 1, b: 3, c: 5}')]
+
+        when:
+        helper.drop()
+        helper.insertDocuments(Document.parse('{_id: 0, a: 1}'))
+        results = helper.aggregate([addFields(new Field('a', [1, 2, 3]))])
+
+        then:
+        results == [Document.parse('{_id: 0, a: [1, 2, 3]}')]
 
         cleanup:
         helper?.drop()

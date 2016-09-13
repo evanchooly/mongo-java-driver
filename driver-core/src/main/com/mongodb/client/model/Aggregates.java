@@ -37,6 +37,32 @@ import static org.bson.assertions.Assertions.notNull;
 public final class Aggregates {
 
     /**
+     * Creates an $addFields pipeline stage
+     *
+     * @param fields        the fields to add
+     * @return the $addFields pipeline stage
+     * @mongodb.driver.manual reference/operator/aggregation/addFields/ $addFields
+     * @mongodb.server.release 3.4
+     * @since 3.4
+     */
+    public static Bson addFields(final Field<?>... fields) {
+        return addFields(asList(fields));
+    }
+
+    /**
+     * Creates a $addFields pipeline stage
+     *
+     * @param fields        the fields to add
+     * @return the $addFields pipeline stage
+     * @mongodb.driver.manual reference/operator/aggregation/addFields/ $addFields
+     * @mongodb.server.release 3.4
+     * @since 3.4
+     */
+    public static Bson addFields(final List<Field<?>> fields) {
+        return new AddFieldsStage(fields);
+    }
+
+    /**
      * Creates a $bucket pipeline stage
      *
      * @param <TExpression> the groupBy expression type
@@ -667,6 +693,37 @@ public final class Aggregates {
 
     }
 
+    private static class AddFieldsStage implements Bson {
+        private final List<Field<?>> fields;
+
+        AddFieldsStage(final List<Field<?>> fields) {
+            this.fields = fields;
+        }
+
+        @Override
+        public <TDocument> BsonDocument toBsonDocument(final Class<TDocument> tDocumentClass, final CodecRegistry codecRegistry) {
+            BsonDocumentWriter writer = new BsonDocumentWriter(new BsonDocument());
+            writer.writeStartDocument();
+            writer.writeName("$addFields");
+            writer.writeStartDocument();
+            for (Field<?> field : fields) {
+                writer.writeName(field.getName());
+                BuildersHelper.encodeValue(writer, field.getValue(), codecRegistry);
+            }
+            writer.writeEndDocument();
+            writer.writeEndDocument();
+
+            return writer.getDocument();
+        }
+
+        @Override
+        public String toString() {
+            return "Stage{"
+                + "name='$addFields', "
+                + "fields=" + fields
+                + '}';
+        }
+    }
     private Aggregates() {
     }
 }
