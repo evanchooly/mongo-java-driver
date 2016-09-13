@@ -22,9 +22,11 @@ import org.bson.codecs.BsonValueCodecProvider
 import org.bson.codecs.DocumentCodecProvider
 import org.bson.codecs.ValueCodecProvider
 import org.bson.conversions.Bson
+import spock.lang.IgnoreIf
 import spock.lang.Specification
 
 import static BucketGranularity.R5
+import static com.mongodb.ClusterFixture.serverVersionAtLeast
 import static com.mongodb.client.model.Accumulators.addToSet
 import static com.mongodb.client.model.Accumulators.avg
 import static com.mongodb.client.model.Accumulators.first
@@ -47,6 +49,7 @@ import static com.mongodb.client.model.Aggregates.lookup
 import static com.mongodb.client.model.Aggregates.match
 import static com.mongodb.client.model.Aggregates.out
 import static com.mongodb.client.model.Aggregates.project
+import static com.mongodb.client.model.Aggregates.replaceRoot
 import static com.mongodb.client.model.Aggregates.sample
 import static com.mongodb.client.model.Aggregates.skip
 import static com.mongodb.client.model.Aggregates.sort
@@ -66,6 +69,7 @@ class AggregatesSpecification extends Specification {
     def registry = fromProviders([new BsonValueCodecProvider(), new DocumentCodecProvider(), new ValueCodecProvider(),
                                   new GeoJsonCodecProvider()])
 
+    @IgnoreIf({ !serverVersionAtLeast(asList(3, 3, 11)) })
     def 'should render $addFields'() {
         expect:
         toBson(addFields(new Field('newField', 'hello'))) == parse('{$addFields: {newField: "hello"}}')
@@ -163,6 +167,14 @@ class AggregatesSpecification extends Specification {
         expect:
         toBson(project(fields(include('title', 'author'), computed('lastName', '$author.last')))) ==
         parse('{ $project : { title : 1 , author : 1, lastName : "$author.last" } }')
+    }
+
+    @IgnoreIf({ !serverVersionAtLeast(asList(3, 3, 11)) })
+    def 'should render $replaceRoot'() {
+        expect:
+        toBson(replaceRoot('$a1')) == parse('{$replaceRoot: {newRoot: "$a1"}}')
+        toBson(replaceRoot('$a1.b')) == parse('{$replaceRoot: {newRoot: "$a1.b"}}')
+        toBson(replaceRoot('$a1')) == parse('{$replaceRoot: {newRoot: "$a1"}}')
     }
 
     def 'should render $sort'() {

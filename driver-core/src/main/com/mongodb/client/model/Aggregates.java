@@ -383,6 +383,20 @@ public final class Aggregates {
     }
 
     /**
+     * Creates a $replaceRoot pipeline stage
+     *
+     * @param <TExpression> the new root type
+     * @param value         the new root value
+     * @return the $replaceRoot pipeline stage
+     * @mongodb.driver.manual reference/operator/aggregation/replaceRoot/ $replaceRoot
+     * @mongodb.server.release 3.4
+     * @since 3.4
+     */
+    public static <TExpression> Bson replaceRoot(final TExpression value) {
+        return new ReplaceRootStage(value);
+    }
+
+    /**
      * Creates a $sample pipeline stage with the specified sample size
      *
      * @param size the sample size
@@ -724,6 +738,37 @@ public final class Aggregates {
                 + '}';
         }
     }
+
+    private static class ReplaceRootStage<TExpression> implements Bson {
+        private final TExpression value;
+
+        ReplaceRootStage(final TExpression value) {
+            this.value = value;
+        }
+
+        @Override
+        public <TDocument> BsonDocument toBsonDocument(final Class<TDocument> tDocumentClass, final CodecRegistry codecRegistry) {
+            BsonDocumentWriter writer = new BsonDocumentWriter(new BsonDocument());
+            writer.writeStartDocument();
+            writer.writeName("$replaceRoot");
+            writer.writeStartDocument();
+            writer.writeName("newRoot");
+            BuildersHelper.encodeValue(writer, value, codecRegistry);
+            writer.writeEndDocument();
+            writer.writeEndDocument();
+
+            return writer.getDocument();
+        }
+
+        @Override
+        public String toString() {
+            return "Stage{"
+                + "name='$replaceRoot', "
+                + "value=" + value
+                + '}';
+        }
+    }
+
     private Aggregates() {
     }
 }

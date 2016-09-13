@@ -46,6 +46,7 @@ import static com.mongodb.client.model.Aggregates.lookup
 import static com.mongodb.client.model.Aggregates.match
 import static com.mongodb.client.model.Aggregates.out
 import static com.mongodb.client.model.Aggregates.project
+import static com.mongodb.client.model.Aggregates.replaceRoot
 import static com.mongodb.client.model.Aggregates.sample
 import static com.mongodb.client.model.Aggregates.skip
 import static com.mongodb.client.model.Aggregates.sort
@@ -542,7 +543,7 @@ class AggregatesFunctionalSpecification extends OperationFunctionalSpecification
         helper?.drop()
     }
 
-    @IgnoreIf({ !serverVersionAtLeast(asList(3, 3, 9)) })
+    @IgnoreIf({ !serverVersionAtLeast(asList(3, 3, 11)) })
     def '$addFields'() {
         given:
         def helper = getCollectionHelper()
@@ -606,5 +607,36 @@ class AggregatesFunctionalSpecification extends OperationFunctionalSpecification
 
         cleanup:
         helper?.drop()
+    }
+
+    @IgnoreIf({ !serverVersionAtLeast(asList(3, 3, 11)) })
+    def '$replaceRoot'() {
+        given:
+        def helper = getCollectionHelper()
+        def results = []
+
+        when:
+        helper.drop()
+        helper.insertDocuments(Document.parse('{_id: 0, a1: {b: 1}, a2: 2}'))
+        results = helper.aggregate([replaceRoot('$a1')])
+
+        then:
+        results == [Document.parse('{b: 1}')]
+
+        when:
+        helper.drop()
+        helper.insertDocuments(Document.parse('{_id: 0, a1: {b: {c1: 4, c2: 5}}, a2: 2}'))
+        results = helper.aggregate([replaceRoot('$a1.b')])
+
+        then:
+        results == [Document.parse('{c1: 4, c2: 5}')]
+
+        when:
+        helper.drop()
+        helper.insertDocuments(Document.parse('{_id: 0, a1: {b: 1, _id: 7}, a2: 2}'))
+        results = helper.aggregate([replaceRoot('$a1')])
+
+        then:
+        results == [Document.parse('{b: 1, _id: 7}')]
     }
 }
