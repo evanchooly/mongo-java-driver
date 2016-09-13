@@ -72,6 +72,7 @@ class AggregatesSpecification extends Specification {
     @IgnoreIf({ !serverVersionAtLeast(asList(3, 3, 11)) })
     def 'should render $addFields'() {
         expect:
+        toBson(addFields(new Field('newField', null))) == parse('{$addFields: {newField: null}}')
         toBson(addFields(new Field('newField', 'hello'))) == parse('{$addFields: {newField: "hello"}}')
         toBson(addFields(new Field('this', '$$CURRENT'))) == parse('{$addFields: {this: "$$CURRENT"}}')
         toBson(addFields(new Field('myNewField', new Document('c', 3)

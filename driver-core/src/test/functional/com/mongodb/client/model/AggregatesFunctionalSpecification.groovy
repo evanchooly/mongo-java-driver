@@ -551,7 +551,15 @@ class AggregatesFunctionalSpecification extends OperationFunctionalSpecification
         when:
         helper.drop()
         helper.insertDocuments(Document.parse('{_id: 0, a: 1}'))
-        def results = helper.aggregate([addFields(new Field('newField', 'hello'))])
+        def results = helper.aggregate([addFields(new Field('newField', null))])
+
+        then:
+        results == [Document.parse('{_id: 0, a: 1, newField: null}')]
+
+        when:
+        helper.drop()
+        helper.insertDocuments(Document.parse('{_id: 0, a: 1}'))
+        results = helper.aggregate([addFields(new Field('newField', 'hello'))])
 
         then:
         results == [Document.parse('{_id: 0, a: 1, newField: "hello"}')]

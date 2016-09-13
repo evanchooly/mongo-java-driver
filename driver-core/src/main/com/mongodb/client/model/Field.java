@@ -16,6 +16,8 @@
 
 package com.mongodb.client.model;
 
+import static com.mongodb.assertions.Assertions.notNull;
+
 /**
  * Helps define new fields for the $addFields pipeline stage
  *
@@ -36,7 +38,7 @@ public class Field<TExpression> {
      * @mongodb.driver.manual reference/operator/aggregation/addFields/  $addFields
      */
     public Field(final String name, final TExpression value) {
-        this.name = name;
+        this.name = notNull("name", name);
         this.value = value;
     }
 
@@ -52,5 +54,30 @@ public class Field<TExpression> {
      */
     public TExpression getValue() {
         return value;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof Field)) {
+            return false;
+        }
+
+        Field<?> field = (Field<?>) o;
+
+        if (!name.equals(field.name)) {
+            return false;
+        }
+        return value != null ? value.equals(field.value) : field.value == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = name.hashCode();
+        result = 31 * result + (value != null ? value.hashCode() : 0);
+        return result;
     }
 }
