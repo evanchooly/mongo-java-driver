@@ -50,7 +50,7 @@ public final class Aggregates {
     }
 
     /**
-     * Creates a $addFields pipeline stage
+     * Creates an $addFields pipeline stage
      *
      * @param fields        the fields to add
      * @return the $addFields pipeline stage
