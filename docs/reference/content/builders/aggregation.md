@@ -169,7 +169,7 @@ out("authors")
 
 ### GraphLookup
 
-The [`$graphLookup`]({{< docsref "reference/operator/aggregation/graphLookup/" >}}) pipeline stage lets you look up and accumulate documents where a particular field matches a given field in current collection, and recursively those whose field matches provided field in the result set.
+The [`$graphLookup`]({{< docsref "reference/operator/aggregation/graphLookup/" >}}) pipeline stage lets you look up and accumulate documents where a particular field matches a given field in then current collection and recursively those whose field matches the provided field in the result set.
 
 This example computes the social network graph for users in the `contacts` collection:
 
@@ -266,7 +266,7 @@ This will result in output that looks like this:
 [_id:70, count:2]
 ```
 
-The default output is simply the lower bound as `_id` and single field containing the size of that bucket.  This output can be modified using the `BucketOptions` class.  The above example can be expanded to look like this:
+The default output is simply the lower bound as the `_id` and a single field containing the size of that bucket.  This output can be modified using the `BucketOptions` class.  The above example can be expanded to look like this:
 
 ```java
 bucket('$screenSize', [0, 24, 32, 50, 70], new BucketOptions()
@@ -284,7 +284,7 @@ The optional value `defaultBucket` defines the name of the bucket for values tha
  [_id: monster, count: 2, matches: [75, 155]]]
 ```
 
-This output contains not only the size of the bucket but also the values in the bucket.  Notice the enormous screen sizes are found in the synthetic bucket named `monster` reflection the outrageously large screen sizes.
+This output contains not only the size of the bucket but also the values in the bucket.  Notice the enormous screen sizes are found in the synthetic bucket named `monster` reflecting the outrageously large screen sizes.
 
 ### BucketAuto
 
@@ -301,7 +301,7 @@ This results in output that looks something like this:
 ```json
 [[_id: [min: 2, max: 30], count: 14],
  [_id: [min: 30, max: 58], count: 14],
- [_id: [min: 58, max: 86], count: 14	],
+ [_id: [min: 58, max: 86], count: 14],
  [_id: [min: 86, max: 114], count: 14],
  [_id: [min: 114, max: 142], count: 14],
  [_id: [min: 142, max: 170], count: 14],
