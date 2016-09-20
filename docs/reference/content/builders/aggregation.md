@@ -169,7 +169,7 @@ out("authors")
 
 ### GraphLookup
 
-The [`$graphLookup`]({{< docsref "reference/operator/aggregation/graphLookup/" >}}) pipeline stage lets you look up and accumulate documents where a particular field matches a given field in then current collection and recursively those whose field matches the provided field in the result set.
+The [`$graphLookup`]({{< docsref "reference/operator/aggregation/graphLookup/" >}}) pipeline stage lets you look up and accumulate documents where a particular field matches a given field in the current collection and recursively those whose fields matches the provided field in the result set.
 
 This example computes the social network graph for users in the `contacts` collection:
 
@@ -243,7 +243,7 @@ These two invocations will put the count in the `count` and `total` fields respe
 count()
 ```
 
-This invocation defaults the field name to `count` saving a bit on redundancy.
+This invocation defaults the field name to `count`, saving a bit on redundancy.
 
 
 ### Bucket
