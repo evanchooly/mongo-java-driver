@@ -187,7 +187,7 @@ The [`$sortByCount`]({{< docsref "reference/operator/aggregation/sortByCount/" >
 The following example will group documents by the truncated value of the field `x` and then count the number of times that value is seen in the results.  The resulting documents will contain these discrete values as the `_id` with the count of the occurrences in a field called `count`.
 
 ```java
-sortByCount(new Document('$floor', '$x'))
+sortByCount(eq('$floor', '$x'))
 ```
 
 ### ReplaceRoot
@@ -196,7 +196,7 @@ The [`$replaceRoot`]({{< docsref "reference/operator/aggregation/replaceRoot/" >
 
 This example shows how to replace the current document with a new one consisting of the value of `b` under the `a1` field:
 
-```jasva
+```java
 replaceRoot('$a1.b')
 ```
 
@@ -217,7 +217,7 @@ It is possible to add more than one field at once.  This example shows how that 
 addFields(new Field('b', 3), new Field('c', 5))
 ```
 
-These new fields don't need be staticly defined, either.  This example shows how to add a new field which is a function of the current document's values.  In this case, a new field `alt3` is added with a value of `true` if the current value of the field `a` is less than 3.  Otherwise, `alt3` will be `false` in the new field.
+These new fields don't need be statically defined, either.  This example shows how to add a new field which is a function of the current document's values.  In this case, a new field `alt3` is added with a value of `true` if the current value of the field `a` is less than 3.  Otherwise, `alt3` will be `false` in the new field.
 
 ```java's
 addFields(new Field('alt3', new Document('$lt', asList('$a', 3))))
@@ -288,7 +288,7 @@ This output contains not only the size of the bucket but also the values in the 
 
 ### BucketAuto
 
-The [`$bucketAuto`]({{< docsref "reference/operator/aggregation/bucketAuto/" >}}) pipeline stage makes bucketing data even simpler by automating the boundaries of each bucket rather than requiring explict boundaries.  Instead of taking a list of values defining each bucket's boundaries, `$autoBucket` takes the number of buckets desired and leaves it to the aggregation engine to discover the boundaries necessary to provide that number of buckets.
+The [`$bucketAuto`]({{< docsref "reference/operator/aggregation/bucketAuto/" >}}) pipeline stage makes bucketing data even simpler by automating the boundaries of each bucket rather than requiring explicit boundaries.  Instead of taking a list of values defining each bucket's boundaries, `$autoBucket` takes the number of buckets desired and leaves it to the aggregation engine to discover the boundaries necessary to provide that number of buckets.
 
 For example, this stage creates 10 buckets:
 
