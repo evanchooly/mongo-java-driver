@@ -182,7 +182,7 @@ Using `GraphLookupOptions`, the output can be tailored to restrict the depth of 
 
 ### SortByCount
 
-The [`$sortByCount`]({{< docsref "reference/operator/aggregation/sortByCount/" >}}) stage groups documents by a given expression and then shorts these groups by count in descending order. The `sortByCount` outputs documents that contains an `_id` field, which contains the discrete values of `x`, and the `count` field that contains the number of documents that fall into that group.
+The [`$sortByCount`]({{< docsref "reference/operator/aggregation/sortByCount/" >}}) stage groups documents by a given expression and then sorts these groups by count in descending order. The `sortByCount` outputs documents that contains an `_id` field, which contains the discrete values of `x`, and the `count` field that contains the number of documents that fall into that group.
 
 The following example groups documents by the truncated value of the field `x` and computes the count for each distinct value of `x`. 
 
@@ -202,9 +202,9 @@ replaceRoot('$a1.b')
 
 ### AddFields
 
-The [`$addFields`]({{< docsref "reference/operator/aggregation/addFields/" >}}) pipeline stage adds new fields to documents. The stage outputs documents that contains all existing fields from the input documents and the newly added fields.
+The [`$addFields`]({{< docsref "reference/operator/aggregation/addFields/" >}}) pipeline stage adds new fields to documents. The stage outputs documents that contain all existing fields from the input documents and the newly added fields.
 
-This example shows how to add a single new field to the current document with a value of `{c : 3, d : 4}`:
+TThis example adds two new fields, `myNewField` and `z` to the input documents; `myNewField` has the value `{c: 3, d: 4}`, `z` has the value 5.
 
 ```java
 addFields(new Field('myNewField', new Document('c', 3).append('d', 4)),
@@ -213,7 +213,7 @@ addFields(new Field('myNewField', new Document('c', 3).append('d', 4)),
 
 These new fields do not need be statically defined.  The following example shows how to add a new field which is a function of the current document's values.  In this case, a new field `alt3` is added with a value of `true` if the current value of the field `a` is less than 3.  Otherwise, `alt3` will be `false` in the new field.
 
-```java's
+```java
 addFields(new Field('alt3', new Document('$lt', asList('$a', 3))))
 ```
 
