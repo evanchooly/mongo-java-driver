@@ -169,9 +169,9 @@ out("authors")
 
 ### GraphLookup
 
-The [`$graphLookup`]({{< docsref "reference/operator/aggregation/graphLookup/" >}}) pipeline stage lets you look up and accumulate documents where a particular field matches a given field in the current collection and recursively those whose fields matches the provided field in the result set.
+The [`$graphLookup`]({{< docsref "reference/operator/aggregation/graphLookup/" >}}) pipeline stage performs a recursive search on a specified collection to match field A of one document to some field B of the other documents. For the matching documents, the stage repeats the search to match field A from the matching documents to the field B of the remaining documents until no new documents are encountered or until a specified depth. To each output document, $graphLookup adds a new array field that contains the traversal results of the search for that document.
 
-This example computes the social network graph for users in the `contacts` collection:
+The following example computes the social network graph for users in the `contacts` collection, recursively matching the value in the `friends` field to the `name` field, up to recursive depth of 1.
 
 ```java
 graphLookup('contacts', '$friends', 'friends', 'name', 'socialNetwork',
@@ -182,9 +182,9 @@ Using `GraphLookupOptions`, the output can be tailored to restrict the depth of 
 
 ### SortByCount
 
-The [`$sortByCount`]({{< docsref "reference/operator/aggregation/sortByCount/" >}}) pipeline stage will automatically group documents by a given expression and then sort those groups by count.
+The [`$sortByCount`]({{< docsref "reference/operator/aggregation/sortByCount/" >}}) stage groups documents by a given expression and then shorts these groups by count in descending order. The `sortByCount` outputs documents that contains an `_id` field, which contains the discrete values of `x`, and the `count` field that contains the number of documents that fall into that group.
 
-The following example will group documents by the truncated value of the field `x` and then count the number of times that value is seen in the results.  The resulting documents will contain these discrete values as the `_id` with the count of the occurrences in a field called `count`.
+The following example groups documents by the truncated value of the field `x` and computes the count for each distinct value of `x`. 
 
 ```java
 sortByCount(eq('$floor', '$x'))
@@ -192,9 +192,9 @@ sortByCount(eq('$floor', '$x'))
 
 ### ReplaceRoot
 
-The [`$replaceRoot`]({{< docsref "reference/operator/aggregation/replaceRoot/" >}}) pipeline stage replaces the root level document in an aggrgation with the specified document.  Note nothing special is done with the `_id` field. The original `_id` (if it exists) will be lost. The user can include it by prepending the `_id` with an `addFields` expression in the replacement document.
+The [`$replaceRoot`]({{< docsref "reference/operator/aggregation/replaceRoot/" >}}) pipeline stage replaces each input document to the stage with the specified document. All existing fields, including the `_id` field, are replaced. 
 
-This example shows how to replace the current document with a new one consisting of the value of `b` under the `a1` field:
+If each input document to the `replaceRoot` stage has a field `a1` that contains a field `b` whose value is a document, the following operation replaces each input document with the document in the `b` field.
 
 ```java
 replaceRoot('$a1.b')
@@ -207,17 +207,11 @@ The [`$addFields`]({{< docsref "reference/operator/aggregation/addFields/" >}}) 
 This example shows how to add a single new field to the current document with a value of `{c : 3, d : 4}`:
 
 ```java
-addFields(new Field('myNewField',
-	new Document('c', 3).append('d', 4)))
+addFields(new Field('myNewField', new Document('c', 3).append('d', 4)),
+	new Field('z': 5))
 ```
 
-It is possible to add more than one field at once.  This example shows how that might look:
-
-```java
-addFields(new Field('b', 3), new Field('c', 5))
-```
-
-These new fields don't need be statically defined, either.  This example shows how to add a new field which is a function of the current document's values.  In this case, a new field `alt3` is added with a value of `true` if the current value of the field `a` is less than 3.  Otherwise, `alt3` will be `false` in the new field.
+These new fields do not need be statically defined.  The following example shows how to add a new field which is a function of the current document's values.  In this case, a new field `alt3` is added with a value of `true` if the current value of the field `a` is less than 3.  Otherwise, `alt3` will be `false` in the new field.
 
 ```java's
 addFields(new Field('alt3', new Document('$lt', asList('$a', 3))))
@@ -274,7 +268,7 @@ bucket('$screenSize', [0, 24, 32, 50, 70], new BucketOptions()
                 .output(sum('count', 1), push('matches', '$screenSize')))
 ```
 
-The optional value `defaultBucket` defines the name of the bucket for values that fall outside defined bucket boundaries.  It is an error condition should there be such values but no `defaultBucket` defined.  The other value is the `output` field which defines the shape of the document output for each bucket.  The output of this stage looks something like this:
+The optional value `defaultBucket` defines the name of the bucket for values that fall outside defined bucket boundaries.  If `defaultBucket` is undefined and values exist outside of the defined bucket boundaries, the stage will produce an error.  The other value is the `output` field which defines the shape of the document output for each bucket.  The output of this stage looks something like this:
 
 ```json
 [[_id: 0, count: 1, matches: [22]],
@@ -288,7 +282,7 @@ This output contains not only the size of the bucket but also the values in the 
 
 ### BucketAuto
 
-The [`$bucketAuto`]({{< docsref "reference/operator/aggregation/bucketAuto/" >}}) pipeline stage makes bucketing data even simpler by automating the boundaries of each bucket rather than requiring explicit boundaries.  Instead of taking a list of values defining each bucket's boundaries, `$autoBucket` takes the number of buckets desired and leaves it to the aggregation engine to discover the boundaries necessary to provide that number of buckets.
+The [`$bucketAuto`]({{< docsref "reference/operator/aggregation/bucketAuto/" >}}) pipeline stage automatically determines the boundaries of each bucket in its attempt to distribute the documents evenly into a specified number of buckets. Depending on the input documents, the number of buckets may be less than the specified number of buckets.
 
 For example, this stage creates 10 buckets:
 
@@ -321,7 +315,7 @@ bucketAuto('$price', 10, new BucketAutoOptions()
 
 ### Facet 
 
-The [`$facet`]({{< docsref "reference/operator/aggregation/facet/" >}}) pipeline stage allows for the definition of a faceted search.  The stage is defined with a set of names and nested aggregation pipelines which define each particular facet.  For example, to return to the example of the television screen size search, the following `$facet` will return a document grouping televisions by size and manufacturer:
+The [`$facet`]({{< docsref "reference/operator/aggregation/facet/" >}}) pipeline stage allows for the definition of a faceted search.  The stage is defined with a set of names and nested aggregation pipelines which define each particular facet.  For example, to return to the example of the television screen size search, the following `$facet` will return a document that groups televisions by size and manufacturer:
 
 ```java
 facet(
