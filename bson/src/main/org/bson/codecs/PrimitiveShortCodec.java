@@ -17,13 +17,13 @@
 package org.bson.codecs;
 
 /**
- * Encodes and decodes {@code boolean} values.
+ * Encodes and decodes {@code short} values.
  *
  * @since 3.5
  */
-public class PrimitiveBooleanCodec extends BooleanCodec {
+public class PrimitiveShortCodec extends ShortCodec {
     @Override
-    public Class<Boolean> getEncoderClass() {
-        return boolean.class;
+    public Class<Short> getEncoderClass() {
+        return short.class;
     }
 }

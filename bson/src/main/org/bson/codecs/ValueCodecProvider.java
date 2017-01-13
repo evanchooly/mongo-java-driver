@@ -94,6 +94,15 @@ public class ValueCodecProvider implements CodecProvider {
         addCodec(new AtomicBooleanCodec());
         addCodec(new AtomicIntegerCodec());
         addCodec(new AtomicLongCodec());
+
+        addCodec(new PrimitiveBooleanCodec());
+        addCodec(new PrimitiveDoubleCodec());
+        addCodec(new PrimitiveIntegerCodec());
+        addCodec(new PrimitiveLongCodec());
+        addCodec(new PrimitiveCharacterCodec());
+        addCodec(new PrimitiveByteCodec());
+        addCodec(new PrimitiveShortCodec());
+        addCodec(new PrimitiveFloatCodec());
     }
 
     private <T> void addCodec(final Codec<T> codec) {

@@ -43,18 +43,26 @@ class ValueCodecProviderSpecification extends Specification {
         provider.get(AtomicLong, registry) instanceof AtomicLongCodec
 
         provider.get(Boolean, registry) instanceof BooleanCodec
+        provider.get(boolean, registry) instanceof PrimitiveBooleanCodec
         provider.get(Integer, registry) instanceof IntegerCodec
+        provider.get(int, registry) instanceof PrimitiveIntegerCodec
         provider.get(Long, registry) instanceof LongCodec
+        provider.get(long, registry) instanceof PrimitiveLongCodec
         provider.get(Decimal128, registry) instanceof Decimal128Codec
         provider.get(Double, registry) instanceof DoubleCodec
+        provider.get(double, registry) instanceof PrimitiveDoubleCodec
         provider.get(Character, registry) instanceof CharacterCodec
+        provider.get(char, registry) instanceof PrimitiveCharacterCodec
         provider.get(String, registry) instanceof StringCodec
         provider.get(Date, registry) instanceof DateCodec
         provider.get(Byte, registry) instanceof ByteCodec
+        provider.get(byte, registry) instanceof PrimitiveByteCodec
         provider.get(Pattern, registry) instanceof PatternCodec
         provider.get(Short, registry) instanceof ShortCodec
+        provider.get(short, registry) instanceof PrimitiveShortCodec
         provider.get(byte[], registry) instanceof ByteArrayCodec
         provider.get(Float, registry) instanceof FloatCodec
+        provider.get(float, registry) instanceof PrimitiveFloatCodec
 
         provider.get(Binary, registry) instanceof BinaryCodec
         provider.get(MinKey, registry) instanceof MinKeyCodec
