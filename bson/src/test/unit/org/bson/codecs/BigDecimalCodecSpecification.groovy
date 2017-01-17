@@ -22,7 +22,7 @@ import org.bson.BsonDocumentWriter
 import org.bson.BsonReader
 import spock.lang.Specification
 
-class BigDecimalCodecSpecfication extends Specification {
+class BigDecimalCodecSpecification extends Specification {
 
     def 'should round trip BigDecimal successfully'(BigDecimal expected) {
         given:
