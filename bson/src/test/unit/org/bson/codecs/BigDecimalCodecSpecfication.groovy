@@ -24,7 +24,7 @@ import spock.lang.Specification
 
 class BigDecimalCodecSpecfication extends Specification {
 
-    def 'should round trip BigDecimal successfuly'(BigDecimal expected) {
+    def 'should round trip BigDecimal successfully'(BigDecimal expected) {
         given:
         BigDecimalCodec codec = new BigDecimalCodec()
         def writer = new BsonDocumentWriter(new BsonDocument())
@@ -43,22 +43,20 @@ class BigDecimalCodecSpecfication extends Specification {
 
         then:
         expected == actual
-
         where:
 
         expected << [
                 new BigDecimal(123),
                 new BigDecimal(42L),
                 new BigDecimal("12345678901234567890"),
-                new BigDecimal(42L),
                 new BigDecimal(Long.valueOf(42)),
                 new BigDecimal(42D),
                 new BigDecimal(Double.valueOf(42)),
-                new BigDecimal("12345678901234567890"),
                 new BigDecimal("1.2345678901234567890"),
                 new BigDecimal(Long.MAX_VALUE),
                 new BigDecimal(Long.MIN_VALUE),
                 new BigDecimal(0),
         ]
+
     }
 }

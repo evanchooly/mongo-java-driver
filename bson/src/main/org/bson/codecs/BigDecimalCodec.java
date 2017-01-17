@@ -25,7 +25,7 @@ import java.math.BigDecimal;
 /**
  * Encodes and decodes {@code BigDecimal} objects.
  *
- * @since 3.4
+ * @since 3.5
  */
 public final class BigDecimalCodec implements Codec<BigDecimal> {
     @Override
