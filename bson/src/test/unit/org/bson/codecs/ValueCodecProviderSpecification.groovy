@@ -49,6 +49,7 @@ class ValueCodecProviderSpecification extends Specification {
         provider.get(Long, registry) instanceof LongCodec
         provider.get(long, registry) instanceof PrimitiveLongCodec
         provider.get(Decimal128, registry) instanceof Decimal128Codec
+        provider.get(BigDecimal, registry) instanceof BigDecimalCodec
         provider.get(Double, registry) instanceof DoubleCodec
         provider.get(double, registry) instanceof PrimitiveDoubleCodec
         provider.get(Character, registry) instanceof CharacterCodec
