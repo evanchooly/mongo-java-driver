@@ -18,6 +18,9 @@ package org.bson.codecs;
 
 import org.bson.BsonReader;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * The context for decoding values to BSON.
  *
@@ -27,12 +30,18 @@ import org.bson.BsonReader;
 public final class DecoderContext {
     private static final DecoderContext DEFAULT_CONTEXT = DecoderContext.builder().build();
     private final boolean checkedDiscriminator;
+    private final Map<String, Object> metadata;
 
     /**
      * @return true if the discriminator has been checked
      */
     public boolean hasCheckedDiscriminator() {
         return checkedDiscriminator;
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T getMetadata(String name) {
+        return (T) metadata.get(name);
     }
 
     /**
@@ -45,6 +54,15 @@ public final class DecoderContext {
     }
 
     /**
+     * Create a builder.
+     *
+     * @return the builder
+     */
+    public static Builder builder(DecoderContext context) {
+        return new Builder(context);
+    }
+
+    /**
      * A builder for {@code DecoderContext} instances.
      */
     public static final class Builder {
@@ -52,6 +70,11 @@ public final class DecoderContext {
         }
 
         private boolean checkedDiscriminator;
+        private Map<String, Object> metadata = new HashMap<String, Object>();
+
+        public Builder(DecoderContext context) {
+            checkedDiscriminator = context.checkedDiscriminator;
+        }
 
         /**
          * @return true if the discriminator has been checked
@@ -69,6 +92,16 @@ public final class DecoderContext {
         public Builder checkedDiscriminator(final boolean checkedDiscriminator) {
             this.checkedDiscriminator = checkedDiscriminator;
             return this;
+        }
+
+        public Builder metaData(String name, Object value) {
+            metadata.put(name, value);
+            return this;
+        }
+
+        @SuppressWarnings("unchecked")
+        public <T> T getMetadata(String name) {
+            return (T) metadata.get(name);
         }
 
         /**
@@ -95,5 +128,6 @@ public final class DecoderContext {
 
     private DecoderContext(final Builder builder) {
         this.checkedDiscriminator = builder.hasCheckedDiscriminator();
+        this.metadata = builder.metadata;
     }
 }

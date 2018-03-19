@@ -18,17 +18,21 @@ package org.bson.codecs;
 
 import org.bson.BsonWriter;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * The context for encoding values to BSON.
  *
  * @see org.bson.codecs.Encoder
  * @since 3.0
  */
-public final class EncoderContext {
+public class EncoderContext {
 
     private static final EncoderContext DEFAULT_CONTEXT = EncoderContext.builder().build();
 
     private final boolean encodingCollectibleDocument;
+    private Map<String, Object> meta = new HashMap<String, Object>();
 
     /**
      * Create a builder.
@@ -40,12 +44,27 @@ public final class EncoderContext {
     }
 
     /**
+     * Create a builder.
+     *
+     * @return the builder
+     */
+    public static Builder builder(EncoderContext context) {
+        return new Builder(context);
+    }
+
+    /**
      * A builder for {@code EncoderContext} instances.
      */
     public static final class Builder {
+        private Map<String, Object> meta = new HashMap<String, Object>();
         private boolean encodingCollectibleDocument;
 
         private Builder() {
+        }
+
+        public Builder(EncoderContext context) {
+            encodingCollectibleDocument = context.encodingCollectibleDocument;
+            meta = context.meta;
         }
 
         /**
@@ -56,6 +75,11 @@ public final class EncoderContext {
          */
         public Builder isEncodingCollectibleDocument(final boolean encodingCollectibleDocument) {
             this.encodingCollectibleDocument = encodingCollectibleDocument;
+            return this;
+        }
+
+        public Builder addMeta(String key, Object value) {
+            meta.put(key, value);
             return this;
         }
 
@@ -77,6 +101,11 @@ public final class EncoderContext {
      */
     public boolean isEncodingCollectibleDocument() {
         return encodingCollectibleDocument;
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T getMeta(String key) {
+        return (T) meta.get(key);
     }
 
     /**
@@ -102,5 +131,6 @@ public final class EncoderContext {
 
     private EncoderContext(final Builder builder) {
         encodingCollectibleDocument = builder.encodingCollectibleDocument;
+        meta.putAll(builder.meta);
     }
 }

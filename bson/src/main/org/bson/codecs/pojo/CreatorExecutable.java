@@ -30,7 +30,7 @@ import java.util.List;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 
-final class CreatorExecutable<T> {
+public final class CreatorExecutable<T> {
     private final Class<T> clazz;
     private final Constructor<T> constructor;
     private final Method method;

@@ -19,11 +19,11 @@ package org.bson.codecs.pojo;
 import org.bson.codecs.Codec;
 import org.bson.codecs.configuration.CodecRegistry;
 
-final class FallbackPropertyCodecProvider implements PropertyCodecProvider {
+public final class FallbackPropertyCodecProvider implements PropertyCodecProvider {
     private final CodecRegistry codecRegistry;
-    private final PojoCodec<?> pojoCodec;
+    private final Codec<?> pojoCodec;
 
-    FallbackPropertyCodecProvider(final PojoCodec<?> pojoCodec, final CodecRegistry codecRegistry) {
+    public FallbackPropertyCodecProvider(final Codec<?> pojoCodec, final CodecRegistry codecRegistry) {
         this.pojoCodec = pojoCodec;
         this.codecRegistry = codecRegistry;
     }

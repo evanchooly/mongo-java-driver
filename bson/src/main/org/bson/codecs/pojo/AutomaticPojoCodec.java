@@ -63,7 +63,7 @@ final class AutomaticPojoCodec<T> extends PojoCodec<T> {
     }
 
     @Override
-    ClassModel<T> getClassModel() {
+    public ClassModel<T> getClassModel() {
         return pojoCodec.getClassModel();
     }
 }

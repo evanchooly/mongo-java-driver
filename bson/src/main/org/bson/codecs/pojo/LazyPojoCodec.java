@@ -25,7 +25,7 @@ import org.bson.codecs.configuration.CodecRegistry;
 
 import java.util.concurrent.ConcurrentMap;
 
-class LazyPojoCodec<T> extends PojoCodec<T> {
+public class LazyPojoCodec<T> extends PojoCodec<T> {
     private final ClassModel<T> classModel;
     private final CodecRegistry registry;
     private final PropertyCodecRegistry propertyCodecRegistry;
@@ -33,7 +33,7 @@ class LazyPojoCodec<T> extends PojoCodec<T> {
     private final ConcurrentMap<ClassModel<?>, Codec<?>> codecCache;
     private volatile PojoCodecImpl<T> pojoCodec;
 
-    LazyPojoCodec(final ClassModel<T> classModel, final CodecRegistry registry, final PropertyCodecRegistry propertyCodecRegistry,
+    public LazyPojoCodec(final ClassModel<T> classModel, final CodecRegistry registry, final PropertyCodecRegistry propertyCodecRegistry,
                   final DiscriminatorLookup discriminatorLookup, final ConcurrentMap<ClassModel<?>, Codec<?>> codecCache) {
         this.classModel = classModel;
         this.registry = registry;
@@ -65,7 +65,7 @@ class LazyPojoCodec<T> extends PojoCodec<T> {
     }
 
     @Override
-    ClassModel<T> getClassModel() {
+    public ClassModel<T> getClassModel() {
         return classModel;
     }
 }

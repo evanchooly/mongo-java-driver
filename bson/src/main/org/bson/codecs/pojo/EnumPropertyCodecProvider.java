@@ -25,10 +25,10 @@ import org.bson.codecs.configuration.CodecConfigurationException;
 import org.bson.codecs.configuration.CodecRegistry;
 
 
-final class EnumPropertyCodecProvider implements PropertyCodecProvider {
+public final class EnumPropertyCodecProvider implements PropertyCodecProvider {
     private final CodecRegistry codecRegistry;
 
-    EnumPropertyCodecProvider(final CodecRegistry codecRegistry) {
+    public EnumPropertyCodecProvider(final CodecRegistry codecRegistry) {
         this.codecRegistry = codecRegistry;
     }
 

@@ -41,7 +41,7 @@ public final class Position {
      */
     public Position(final List<Double> values) {
         notNull("values", values);
-        isTrueArgument("value contains only non-null elements", !values.contains(null));
+//        isTrueArgument("value contains only non-null elements", !values.contains(null));
         isTrueArgument("value must contain at least two elements", values.size() >= 2);
         this.values = Collections.unmodifiableList(values);
     }

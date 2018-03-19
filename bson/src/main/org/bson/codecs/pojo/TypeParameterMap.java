@@ -25,7 +25,7 @@ import static java.util.Collections.unmodifiableMap;
 /**
  * Maps the index of a class's generic parameter type index to a property's.
  */
-final class TypeParameterMap {
+public final class TypeParameterMap {
     private final Map<Integer, Integer> propertyToClassParamIndexMap;
 
     /**
@@ -44,11 +44,11 @@ final class TypeParameterMap {
      *
      * @return a mapping of property type parameter index to the class type parameter index.
      */
-    Map<Integer, Integer> getPropertyToClassParamIndexMap() {
+    public Map<Integer, Integer> getPropertyToClassParamIndexMap() {
         return propertyToClassParamIndexMap;
     }
 
-    boolean hasTypeParameters() {
+    public boolean hasTypeParameters() {
         return !propertyToClassParamIndexMap.isEmpty();
     }
 

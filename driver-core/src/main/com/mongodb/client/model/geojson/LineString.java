@@ -53,7 +53,7 @@ public final class LineString extends Geometry {
         super(coordinateReferenceSystem);
         notNull("coordinates", coordinates);
         isTrueArgument("coordinates must contain at least two positions", coordinates.size() >= 2);
-        isTrueArgument("coordinates contains only non-null positions", !coordinates.contains(null));
+//        isTrueArgument("coordinates contains only non-null positions", !coordinates.contains(null));
 
         this.coordinates = Collections.unmodifiableList(coordinates);
     }

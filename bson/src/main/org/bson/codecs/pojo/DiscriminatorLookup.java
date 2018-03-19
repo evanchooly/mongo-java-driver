@@ -24,11 +24,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static java.lang.String.format;
 
-final class DiscriminatorLookup {
+public final class DiscriminatorLookup {
     private final Map<String, Class<?>> discriminatorClassMap = new ConcurrentHashMap<String, Class<?>>();
     private final Set<String> packages;
 
-    DiscriminatorLookup(final Map<Class<?>, ClassModel<?>> classModels, final Set<String> packages) {
+    public DiscriminatorLookup(final Map<Class<?>, ClassModel<?>> classModels, final Set<String> packages) {
         for (ClassModel<?> classModel : classModels.values()) {
             if (classModel.getDiscriminator() != null) {
                 discriminatorClassMap.put(classModel.getDiscriminator(), classModel.getType());
@@ -55,7 +55,7 @@ final class DiscriminatorLookup {
         return clazz;
     }
 
-    void addClassModel(final ClassModel<?> classModel) {
+    public void addClassModel(final ClassModel<?> classModel) {
         if (classModel.getDiscriminator() != null) {
             discriminatorClassMap.put(classModel.getDiscriminator(), classModel.getType());
         }

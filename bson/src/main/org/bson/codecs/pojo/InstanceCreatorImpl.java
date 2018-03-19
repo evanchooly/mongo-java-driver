@@ -23,7 +23,7 @@ import java.util.Map;
 
 import static java.lang.String.format;
 
-final class InstanceCreatorImpl<T> implements InstanceCreator<T> {
+public final class InstanceCreatorImpl<T> implements InstanceCreator<T> {
     private final CreatorExecutable<T> creatorExecutable;
     private final Map<PropertyModel<?>, Object> cachedValues;
     private final Map<String, Integer> properties;
@@ -31,7 +31,7 @@ final class InstanceCreatorImpl<T> implements InstanceCreator<T> {
 
     private T newInstance;
 
-    InstanceCreatorImpl(final CreatorExecutable<T> creatorExecutable) {
+    public InstanceCreatorImpl(final CreatorExecutable<T> creatorExecutable) {
         this.creatorExecutable = creatorExecutable;
         if (creatorExecutable.getProperties().isEmpty()) {
             this.cachedValues = null;

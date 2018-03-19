@@ -24,11 +24,11 @@ import org.bson.codecs.EncoderContext;
 import org.bson.codecs.configuration.CodecConfigurationException;
 
 
-class LazyMissingCodec<S> implements Codec<S> {
+public class LazyMissingCodec<S> implements Codec<S> {
     private final Class<S> clazz;
     private final CodecConfigurationException exception;
 
-    LazyMissingCodec(final Class<S> clazz, final CodecConfigurationException exception) {
+    public LazyMissingCodec(final Class<S> clazz, final CodecConfigurationException exception) {
         this.clazz = clazz;
         this.exception = exception;
     }

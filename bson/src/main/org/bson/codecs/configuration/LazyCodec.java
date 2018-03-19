@@ -22,12 +22,12 @@ import org.bson.codecs.Codec;
 import org.bson.codecs.DecoderContext;
 import org.bson.codecs.EncoderContext;
 
-class LazyCodec<T> implements Codec<T> {
+public class LazyCodec<T> implements Codec<T> {
     private final CodecRegistry registry;
     private final Class<T> clazz;
     private volatile Codec<T> wrapped;
 
-    LazyCodec(final CodecRegistry registry, final Class<T> clazz) {
+    public LazyCodec(final CodecRegistry registry, final Class<T> clazz) {
         this.registry = registry;
         this.clazz = clazz;
     }

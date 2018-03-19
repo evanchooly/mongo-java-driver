@@ -256,16 +256,16 @@ public final class PropertyModelBuilder<T> {
         return format("PropertyModelBuilder{propertyName=%s, typeData=%s}", name, typeData);
     }
 
-    PropertyModelBuilder<T> propertyName(final String propertyName) {
+    public PropertyModelBuilder<T> propertyName(final String propertyName) {
         this.name = notNull("propertyName", propertyName);
         return this;
     }
 
-    TypeData<T> getTypeData() {
+    public TypeData<T> getTypeData() {
         return typeData;
     }
 
-    PropertyModelBuilder<T> typeData(final TypeData<T> typeData) {
+    public PropertyModelBuilder<T> typeData(final TypeData<T> typeData) {
         this.typeData = notNull("typeData", typeData);
         return this;
     }

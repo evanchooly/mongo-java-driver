@@ -32,7 +32,7 @@ import static org.bson.assertions.Assertions.notNull;
 import static org.bson.codecs.pojo.PropertyReflectionUtils.isGetter;
 
 
-final class TypeData<T> implements TypeWithTypeParameters<T> {
+public final class TypeData<T> implements TypeWithTypeParameters<T> {
     private final Class<T> type;
     private final List<TypeData<?>> typeParameters;
 

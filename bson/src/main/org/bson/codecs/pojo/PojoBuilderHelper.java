@@ -36,14 +36,13 @@ import static java.lang.reflect.Modifier.isPublic;
 import static java.util.Arrays.asList;
 import static java.util.Collections.reverse;
 import static org.bson.assertions.Assertions.notNull;
-import static org.bson.codecs.pojo.PropertyReflectionUtils.getPropertyMethods;
 import static org.bson.codecs.pojo.PropertyReflectionUtils.isGetter;
+import static org.bson.codecs.pojo.PropertyReflectionUtils.getPropertyMethods;
 import static org.bson.codecs.pojo.PropertyReflectionUtils.toPropertyName;
 
-final class PojoBuilderHelper {
-
+public final class PojoBuilderHelper {
     @SuppressWarnings("unchecked")
-    static <T> void configureClassModelBuilder(final ClassModelBuilder<T> classModelBuilder, final Class<T> clazz) {
+    public static <T> void configureClassModelBuilder(final ClassModelBuilder<T> classModelBuilder, final Class<T> clazz) {
         classModelBuilder.type(notNull("clazz", clazz));
 
         ArrayList<Annotation> annotations = new ArrayList<Annotation>();
@@ -168,7 +167,7 @@ final class PojoBuilderHelper {
         return propertyTypeClass.isAssignableFrom(typeDataClass) || typeDataClass.isAssignableFrom(propertyTypeClass);
     }
 
-    private static <T, S> PropertyMetadata<T> getOrCreateFieldPropertyMetadata(final String propertyName,
+    public static <T, S> PropertyMetadata<T> getOrCreateFieldPropertyMetadata(final String propertyName,
                                                                                final String declaringClassName,
                                                                                final Map<String, PropertyMetadata<?>> propertyNameMap,
                                                                                final TypeData<T> typeData,
@@ -207,12 +206,12 @@ final class PojoBuilderHelper {
         propertyMetadata.typeParameterInfo(typeParameterMap, parentClassTypeData);
     }
 
-    private static Type getGenericType(final Method method) {
+    public static Type getGenericType(final Method method) {
         return isGetter(method) ? method.getGenericReturnType() : method.getGenericParameterTypes()[0];
     }
 
     @SuppressWarnings("unchecked")
-    static <T> PropertyModelBuilder<T> createPropertyModelBuilder(final PropertyMetadata<T> propertyMetadata) {
+    public static <T> PropertyModelBuilder<T> createPropertyModelBuilder(final PropertyMetadata<T> propertyMetadata) {
         PropertyModelBuilder<T> propertyModelBuilder = PropertyModel.<T>builder()
                 .propertyName(propertyMetadata.getName())
                 .readName(propertyMetadata.getName())
@@ -231,7 +230,7 @@ final class PojoBuilderHelper {
         return propertyModelBuilder;
     }
 
-    private static TypeParameterMap getTypeParameterMap(final List<String> genericTypeNames, final Type propertyType) {
+    public static TypeParameterMap getTypeParameterMap(final List<String> genericTypeNames, final Type propertyType) {
         int classParamIndex = genericTypeNames.indexOf(propertyType.toString());
         TypeParameterMap.Builder builder = TypeParameterMap.builder();
         if (classParamIndex != -1) {

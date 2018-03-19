@@ -23,7 +23,7 @@ import java.util.List;
 
 import static java.lang.reflect.Modifier.isPublic;
 
-final class PropertyReflectionUtils {
+public final class PropertyReflectionUtils {
     private PropertyReflectionUtils() {}
 
     private static final String IS_PREFIX = "is";
@@ -49,7 +49,7 @@ final class PropertyReflectionUtils {
         return false;
     }
 
-    static String toPropertyName(final Method method) {
+    public static String toPropertyName(final Method method) {
         String name = method.getName();
         String propertyName = name.substring(name.startsWith(IS_PREFIX) ? 2 : 3, name.length());
         char[] chars = propertyName.toCharArray();
@@ -57,7 +57,7 @@ final class PropertyReflectionUtils {
         return new String(chars);
     }
 
-    static PropertyMethods getPropertyMethods(final Class<?> clazz) {
+    public static PropertyMethods getPropertyMethods(final Class<?> clazz) {
         List<Method> setters = new ArrayList<Method>();
         List<Method> getters = new ArrayList<Method>();
         for (Method method : clazz.getDeclaredMethods()) {
@@ -78,7 +78,7 @@ final class PropertyReflectionUtils {
         return new PropertyMethods(getters, setters);
     }
 
-    static class PropertyMethods {
+    public static class PropertyMethods {
         private final Collection<Method> getterMethods;
         private final Collection<Method> setterMethods;
 
@@ -87,11 +87,11 @@ final class PropertyReflectionUtils {
             this.setterMethods = setterMethods;
         }
 
-        Collection<Method> getGetterMethods() {
+        public Collection<Method> getGetterMethods() {
             return getterMethods;
         }
 
-        Collection<Method> getSetterMethods() {
+        public Collection<Method> getSetterMethods() {
             return setterMethods;
         }
     }

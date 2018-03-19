@@ -20,16 +20,16 @@ import org.bson.codecs.configuration.CodecConfigurationException;
 
 import static java.lang.String.format;
 
-final class IdPropertyModelHolder<I> {
+public final class IdPropertyModelHolder<I> {
     private final PropertyModel<I> propertyModel;
     private final IdGenerator<I> idGenerator;
 
-    static <T, I> IdPropertyModelHolder<I> create(final ClassModel<T> classModel, final PropertyModel<I> idPropertyModel) {
+    public static <T, I> IdPropertyModelHolder<I> create(final ClassModel<T> classModel, final PropertyModel<I> idPropertyModel) {
         return create(classModel.getType(), idPropertyModel, classModel.getIdPropertyModelHolder().getIdGenerator());
     }
 
     @SuppressWarnings("unchecked")
-    static <T, I, V> IdPropertyModelHolder<I> create(final Class<T> type, final PropertyModel<I> idProperty,
+    public static <T, I, V> IdPropertyModelHolder<I> create(final Class<T> type, final PropertyModel<I> idProperty,
                                                      final IdGenerator<V> idGenerator) {
         if (idProperty == null && idGenerator != null) {
             throw new CodecConfigurationException(format("Invalid IdGenerator. There is no IdProperty set for: %s", type));
@@ -45,11 +45,11 @@ final class IdPropertyModelHolder<I> {
         this.idGenerator = idGenerator;
     }
 
-    PropertyModel<I> getPropertyModel() {
+    public PropertyModel<I> getPropertyModel() {
         return propertyModel;
     }
 
-    IdGenerator<I> getIdGenerator() {
+    public IdGenerator<I> getIdGenerator() {
         return idGenerator;
     }
 

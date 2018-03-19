@@ -51,7 +51,7 @@ public final class MultiPolygon extends Geometry {
     public MultiPolygon(@Nullable final CoordinateReferenceSystem coordinateReferenceSystem, final List<PolygonCoordinates> coordinates) {
         super(coordinateReferenceSystem);
         notNull("coordinates", coordinates);
-        isTrueArgument("coordinates has no null elements", !coordinates.contains(null));
+//        isTrueArgument("coordinates has no null elements", !coordinates.contains(null));
         this.coordinates = Collections.unmodifiableList(coordinates);
     }
 

@@ -16,7 +16,9 @@
 
 package org.bson.codecs.pojo;
 
+import java.lang.annotation.Annotation;
 import java.util.Collections;
+import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Map;
 
@@ -26,7 +28,7 @@ import java.util.Map;
  * @param <T> The type of the class the ClassModel represents
  * @since 3.5
  */
-public final class ClassModel<T> {
+public class ClassModel<T> {
     private final String name;
     private final Class<T> type;
     private final boolean hasTypeParameters;
@@ -34,14 +36,16 @@ public final class ClassModel<T> {
     private final boolean discriminatorEnabled;
     private final String discriminatorKey;
     private final String discriminator;
+    private final List<Annotation> annotations;
     private final IdPropertyModelHolder<?> idPropertyModelHolder;
     private final List<PropertyModel<?>> propertyModels;
+    private final List<FieldModel<?>> fieldModels;
     private final Map<String, TypeParameterMap> propertyNameToTypeParameterMap;
 
-    ClassModel(final Class<T> clazz, final Map<String, TypeParameterMap> propertyNameToTypeParameterMap,
+    public ClassModel(final Class<T> clazz, final Map<String, TypeParameterMap> propertyNameToTypeParameterMap,
                final InstanceCreatorFactory<T> instanceCreatorFactory, final Boolean discriminatorEnabled, final String discriminatorKey,
-               final String discriminator, final IdPropertyModelHolder<?> idPropertyModelHolder,
-               final List<PropertyModel<?>> propertyModels) {
+               final String discriminator, final IdPropertyModelHolder<?> idPropertyModelHolder, final List<Annotation> annotations,
+               final List<FieldModel<?>> fieldModels, final List<PropertyModel<?>> propertyModels) {
         this.name = clazz.getSimpleName();
         this.type = clazz;
         this.hasTypeParameters = clazz.getTypeParameters().length > 0;
@@ -52,6 +56,8 @@ public final class ClassModel<T> {
         this.discriminator = discriminator;
         this.idPropertyModelHolder = idPropertyModelHolder;
         this.propertyModels = Collections.unmodifiableList(propertyModels);
+        this.annotations = annotations;
+        this.fieldModels = fieldModels;
     }
 
     /**
@@ -68,7 +74,7 @@ public final class ClassModel<T> {
     /**
      * @return a new InstanceCreator instance for the ClassModel
      */
-    InstanceCreator<T> getInstanceCreator() {
+    public InstanceCreator<T> getInstanceCreator() {
         return instanceCreatorFactory.create();
     }
 
@@ -127,6 +133,39 @@ public final class ClassModel<T> {
     }
 
     /**
+     * Gets a {@link FieldModel} by the field name.
+     *
+     * @param fieldName the FieldModel's field name
+     * @return the FieldModel or null if the field is not found
+     */
+    public FieldModel<?> getFieldModel(final String fieldName) {
+        for (FieldModel<?> fieldModel : fieldModels) {
+            if (fieldModel.getName().equals(fieldName)) {
+                return fieldModel;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Returns all the annotations on this model
+     *
+     * @return the list of annotations
+     */
+    public List<Annotation> getAnnotations() {
+        return annotations;
+    }
+
+    /**
+     * Returns all the fields on this model
+     *
+     * @return the list of fields
+     */
+    public List<FieldModel<?>> getFieldModels() {
+        return fieldModels;
+    }
+
+    /**
      * Returns all the properties on this model
      *
      * @return the list of properties
@@ -144,7 +183,7 @@ public final class ClassModel<T> {
         return idPropertyModelHolder != null ? idPropertyModelHolder.getPropertyModel() : null;
     }
 
-    IdPropertyModelHolder<?> getIdPropertyModelHolder() {
+    public IdPropertyModelHolder<?> getIdPropertyModelHolder() {
         return idPropertyModelHolder;
     }
 
@@ -155,13 +194,6 @@ public final class ClassModel<T> {
      */
     public String getName() {
         return name;
-    }
-
-    @Override
-    public String toString() {
-        return "ClassModel{"
-                + "type=" + type
-                + "}";
     }
 
     @Override
@@ -198,6 +230,12 @@ public final class ClassModel<T> {
         if (!getPropertyModels().equals(that.getPropertyModels())) {
             return false;
         }
+        if (!getFieldModels().equals(that.getFieldModels())) {
+            return false;
+        }
+        if (!getAnnotations().equals(that.getAnnotations())) {
+            return false;
+        }
         if (!getPropertyNameToTypeParameterMap().equals(that.getPropertyNameToTypeParameterMap())) {
             return false;
         }
@@ -214,16 +252,32 @@ public final class ClassModel<T> {
         result = 31 * result + (getDiscriminator() != null ? getDiscriminator().hashCode() : 0);
         result = 31 * result + (getIdPropertyModelHolder() != null ? getIdPropertyModelHolder().hashCode() : 0);
         result = 31 * result + getPropertyModels().hashCode();
+        result = 31 * result + getFieldModels().hashCode();
+        result = 31 * result + getAnnotations().hashCode();
         result = 31 * result + getPropertyNameToTypeParameterMap().hashCode();
         return result;
     }
 
-    InstanceCreatorFactory<T> getInstanceCreatorFactory() {
+    public InstanceCreatorFactory<T> getInstanceCreatorFactory() {
         return instanceCreatorFactory;
     }
 
-    Map<String, TypeParameterMap> getPropertyNameToTypeParameterMap() {
+    public Map<String, TypeParameterMap> getPropertyNameToTypeParameterMap() {
         return propertyNameToTypeParameterMap;
     }
 
+    @Override
+       public String toString() {
+           return "ClassModel{" +
+                  "name='" + name + '\'' +
+                  ", type=" + type +
+                  ", hasTypeParameters=" + hasTypeParameters +
+                  ", discriminatorEnabled=" + discriminatorEnabled +
+                  ", discriminatorKey='" + discriminatorKey + '\'' +
+                  ", discriminator='" + discriminator + '\'' +
+                  ", idProperty=" + getIdPropertyModel() +
+                  ", propertyModels=" + propertyModels +
+                  ", propertyNameToTypeParameterMap=" + propertyNameToTypeParameterMap +
+                  '}';
+       }
 }

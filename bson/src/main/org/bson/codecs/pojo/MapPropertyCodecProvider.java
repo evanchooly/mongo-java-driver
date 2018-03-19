@@ -29,7 +29,7 @@ import java.util.Map.Entry;
 
 import static java.lang.String.format;
 
-final class MapPropertyCodecProvider implements PropertyCodecProvider {
+public final class MapPropertyCodecProvider implements PropertyCodecProvider {
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Override

@@ -55,7 +55,7 @@ public final class MultiLineString extends Geometry {
 
         for (List<Position> line : coordinates) {
             notNull("line", line);
-            isTrueArgument("line contains only non-null positions", !line.contains(null));
+//            isTrueArgument("line contains only non-null positions", !line.contains(null));
         }
 
         this.coordinates = Collections.unmodifiableList(coordinates);

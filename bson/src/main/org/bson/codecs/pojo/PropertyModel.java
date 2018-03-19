@@ -36,7 +36,7 @@ public final class PropertyModel<T> {
     private final String error;
     private volatile Codec<T> cachedCodec;
 
-    PropertyModel(final String name, final String readName, final String writeName, final TypeData<T> typeData,
+    public PropertyModel(final String name, final String readName, final String writeName, final TypeData<T> typeData,
                   final Codec<T> codec, final PropertySerialization<T> propertySerialization, final Boolean useDiscriminator,
                   final PropertyAccessor<T> propertyAccessor, final String error) {
         this.name = name;
@@ -156,7 +156,7 @@ public final class PropertyModel<T> {
             return false;
         }
 
-        PropertyModel<?> that = (PropertyModel<?>) o;
+        final PropertyModel<?> that = (PropertyModel<?>) o;
 
         if (getName() != null ? !getName().equals(that.getName()) : that.getName() != null) {
             return false;
@@ -219,15 +219,15 @@ public final class PropertyModel<T> {
         return error;
     }
 
-    PropertySerialization<T> getPropertySerialization() {
+    public PropertySerialization<T> getPropertySerialization() {
         return propertySerialization;
     }
 
-    void cachedCodec(final Codec<T> codec) {
+    public void cachedCodec(final Codec<T> codec) {
         this.cachedCodec = codec;
     }
 
-    Codec<T> getCachedCodec() {
+    public Codec<T> getCachedCodec() {
         return cachedCodec;
     }
 }

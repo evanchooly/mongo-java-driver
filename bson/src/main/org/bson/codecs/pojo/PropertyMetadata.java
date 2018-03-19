@@ -32,7 +32,7 @@ import static java.lang.reflect.Modifier.isPublic;
 import static java.lang.reflect.Modifier.isStatic;
 import static java.lang.reflect.Modifier.isTransient;
 
-final class PropertyMetadata<T> {
+public final class PropertyMetadata<T> {
     private final String name;
     private final String declaringClassName;
     private final TypeData<T> typeData;
@@ -46,7 +46,7 @@ final class PropertyMetadata<T> {
     private Method getter;
     private Method setter;
 
-    PropertyMetadata(final String name, final String declaringClassName, final TypeData<T> typeData) {
+    public PropertyMetadata(final String name, final String declaringClassName, final TypeData<T> typeData) {
         this.name = name;
         this.declaringClassName = declaringClassName;
         this.typeData = typeData;

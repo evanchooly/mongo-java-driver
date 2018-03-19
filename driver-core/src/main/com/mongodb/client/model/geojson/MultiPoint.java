@@ -51,7 +51,7 @@ public final class MultiPoint extends Geometry {
     public MultiPoint(@Nullable final CoordinateReferenceSystem coordinateReferenceSystem, final List<Position> coordinates) {
         super(coordinateReferenceSystem);
         notNull("coordinates", coordinates);
-        isTrueArgument("coordinates contains only non-null positions", !coordinates.contains(null));
+//        isTrueArgument("coordinates contains only non-null positions", !coordinates.contains(null));
 
         this.coordinates = Collections.unmodifiableList(coordinates);
     }
