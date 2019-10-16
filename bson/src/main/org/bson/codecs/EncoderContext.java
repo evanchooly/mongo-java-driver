@@ -32,7 +32,6 @@ public class EncoderContext {
     private static final EncoderContext DEFAULT_CONTEXT = EncoderContext.builder().build();
 
     private final boolean encodingCollectibleDocument;
-    private Map<String, Object> meta = new HashMap<String, Object>();
 
     /**
      * Create a builder.
@@ -64,7 +63,6 @@ public class EncoderContext {
 
         public Builder(EncoderContext context) {
             encodingCollectibleDocument = context.encodingCollectibleDocument;
-            meta = context.meta;
         }
 
         /**
@@ -103,11 +101,6 @@ public class EncoderContext {
         return encodingCollectibleDocument;
     }
 
-    @SuppressWarnings("unchecked")
-    public <T> T getMeta(String key) {
-        return (T) meta.get(key);
-    }
-
     /**
      * Creates a child context based on this and serializes the value with it to the writer.
      *
@@ -131,6 +124,5 @@ public class EncoderContext {
 
     private EncoderContext(final Builder builder) {
         encodingCollectibleDocument = builder.encodingCollectibleDocument;
-        meta.putAll(builder.meta);
     }
 }
