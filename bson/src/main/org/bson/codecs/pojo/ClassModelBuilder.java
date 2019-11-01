@@ -45,7 +45,6 @@ import static org.bson.codecs.pojo.PojoBuilderHelper.stateNotNull;
 public class ClassModelBuilder<T> {
     public static final String ID_PROPERTY_NAME = "_id";
     private final List<PropertyModelBuilder<?>> propertyModelBuilders = new ArrayList<PropertyModelBuilder<?>>();
-    private final List<FieldModelBuilder<?>> fieldModelBuilders = new ArrayList<FieldModelBuilder<?>>();
     private IdGenerator<?> idGenerator;
     private InstanceCreatorFactory<T> instanceCreatorFactory;
     private Class<T> type;
@@ -227,39 +226,6 @@ public class ClassModelBuilder<T> {
         return idPropertyName;
     }
 
-    /**
-     * Remove a field from the builder
-     *
-     * @param fieldName the actual field name in the POJO and not the {@code documentFieldName}.
-     * @return returns true if the field matched and was removed
-     */
-    public boolean removeField(final String fieldName) {
-        return fieldModelBuilders.remove(getField(notNull("fieldName", fieldName)));
-    }
-
-    /**
-     * Gets a field by the field name.
-     *
-     * @param fieldName the name of the field to find.
-     * @return the field or null if the field is not found
-     */
-    public FieldModelBuilder<?> getField(final String fieldName) {
-        notNull("fieldName", fieldName);
-        for (FieldModelBuilder<?> fieldModelBuilder : fieldModelBuilders) {
-            if (fieldModelBuilder.getName().equals(fieldName)) {
-                return fieldModelBuilder;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * @return the fields on the modeled type
-     */
-    public List<FieldModelBuilder<?>> getFieldModelBuilders() {
-        return fieldModelBuilders;
-    }
-
 
     /**
      * Remove a property from the builder
@@ -301,7 +267,6 @@ public class ClassModelBuilder<T> {
      */
     public ClassModel<T> build() {
         List<PropertyModel<?>> propertyModels = new ArrayList<PropertyModel<?>>();
-        List<FieldModel<?>> fieldModels = new ArrayList<FieldModel<?>>();
         PropertyModel<?> idPropertyModel = null;
 
         stateNotNull("type", type);
@@ -328,13 +293,8 @@ public class ClassModelBuilder<T> {
             }
         }
         validatePropertyModels(type.getSimpleName(), propertyModels);
-        for (FieldModelBuilder<?> fieldModelBuilder : fieldModelBuilders) {
-            fieldModels.add(fieldModelBuilder.build());
-        }
-
         return new ClassModel<T>(type, propertyNameToTypeParameterMap, instanceCreatorFactory, discriminatorEnabled, discriminatorKey,
-                discriminator, IdPropertyModelHolder.create(type, idPropertyModel, idGenerator), unmodifiableList(annotations),
-                unmodifiableList(fieldModels), unmodifiableList(propertyModels));
+                discriminator, IdPropertyModelHolder.create(type, idPropertyModel, idGenerator), unmodifiableList(propertyModels));
     }
 
     @Override

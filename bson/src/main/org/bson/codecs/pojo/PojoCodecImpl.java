@@ -325,7 +325,7 @@ public class PojoCodecImpl<T> extends PojoCodec<T> {
         return new ClassModel<S>(clazzModel.getType(), clazzModel.getPropertyNameToTypeParameterMap(),
                 clazzModel.getInstanceCreatorFactory(), discriminatorEnabled, clazzModel.getDiscriminatorKey(),
                 clazzModel.getDiscriminator(), IdPropertyModelHolder.create(clazzModel, concreteIdProperty),
-                clazzModel.getAnnotations(), clazzModel.getFieldModels(), concretePropertyModels);
+                concretePropertyModels);
     }
 
     @SuppressWarnings("unchecked")
